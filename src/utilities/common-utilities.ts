@@ -1,7 +1,7 @@
 import { moviesModbaseurl, tmdb_api } from '@config/env-var';
 import { RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
-import {Response} from 'express';
+import { Response } from 'express';
 import inDevMode from './development-mode';
 
 
@@ -60,9 +60,17 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
  * @param {string} errorMessage - The error message to be sent to the client.
  */
 
-export function sendServerError(res:Response ,statusCode: number = 500, errorMessage:string = `Internal Server Error`): void {
-    res.status(statusCode).json({ errorMessage:  errorMessage});
+export function sendServerError(res: Response, statusCode: number = 500, errorMessage: string = `Internal Server Error`): void {
+	res.status(statusCode).json({ errorMessage: errorMessage });
 }
+
+/**
+ * Logs an error message to the `console` in `development environment`.
+ * @param {Error} err - The error message to be logged.
+ * @returns {void}
+ */
+export const logError = (err: Error): void => inDevMode(() => logger.error(err.message));
+
 
 /**
  * this function provide html content for generate particuler movie download link
@@ -71,14 +79,14 @@ export function sendServerError(res:Response ,statusCode: number = 500, errorMes
  * @returns {Promise<Response>} - A promise that resolves to the HTTP response from the server.
  * @throws {Error} - If there is an error during the fetch request.
  */
-export const fetchMovieHtml = async (optType:string = ''): Promise<string | Error> => {
+export const fetchMovieHtml = async (optType: string = ''): Promise<string | Error> => {
 	try {
-		const fetchRes = fetch(moviesModbaseurl+optType)
+		const fetchRes = fetch(moviesModbaseurl + optType)
 		const result = await (await fetchRes).text();
 		return result
-	} catch (err:any) {
-		inDevMode(() => logger.error(err.message));
-		throw Error()
+	} catch (err: any) {
+		logError(err);
+		throw Error();
 	}
 };
 
@@ -88,18 +96,18 @@ export const fetchMovieHtml = async (optType:string = ''): Promise<string | Erro
  * @returns {Promise<any>} - A promise that resolves to the parsed JSON data.
  * @throws {Error} - If there is an error during the fetch request or parsing of the JSON data.
  */
-export const fetchTMDB = async (optPrefix:string = ''): Promise<any> => {
-    try {
-        const response = await fetch(`https://api.themoviedb.org/3/${optPrefix}`,{
-			headers:{
+export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
+	try {
+		const response = await (await fetch(`https://api.themoviedb.org/3/${optPrefix}`, {
+			method:'GET',
+			headers: {
 				accept: 'application/json',
 				Authorization: `Bearer ${tmdb_api}`
 			}
-		});
-        const jsonData = await response.json();
-        return jsonData;
-    } catch (err:any) {
-		inDevMode(() => logger.error(err.message));
-        throw new Error();
-    }
+		})).json();
+		return response;
+	} catch (err: any) {
+		logError(err);
+		throw new Error();
+	}
 }
