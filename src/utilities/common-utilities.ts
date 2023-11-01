@@ -1,7 +1,8 @@
-import { apiBaseUrl } from '@config/env-var';
+import { moviesModbaseurl, tmdb_api } from '@config/env-var';
 import { RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
 import {Response} from 'express';
+import inDevMode from './development-mode';
 
 
 /**
@@ -72,12 +73,33 @@ export function sendServerError(res:Response ,statusCode: number = 500, errorMes
  */
 export const fetchMovieHtml = async (optType:string = ''): Promise<string | Error> => {
 	try {
-		const fetchRes = fetch(apiBaseUrl+optType)
+		const fetchRes = fetch(moviesModbaseurl+optType)
 		const result = await (await fetchRes).text();
 		return result
 	} catch (err:any) {
-		logger.error(err.message)
+		inDevMode(() => logger.error(err.message));
 		throw Error()
 	}
 };
 
+/**
+ * Fetches JSON data from the specified URL.
+ * @param {string} optPrefix - The `path` or `query` or `params`
+ * @returns {Promise<any>} - A promise that resolves to the parsed JSON data.
+ * @throws {Error} - If there is an error during the fetch request or parsing of the JSON data.
+ */
+export const fetchTMDB = async (optPrefix:string = ''): Promise<any> => {
+    try {
+        const response = await fetch(`https://api.themoviedb.org/3/${optPrefix}`,{
+			headers:{
+				accept: 'application/json',
+				Authorization: `Bearer ${tmdb_api}`
+			}
+		});
+        const jsonData = await response.json();
+        return jsonData;
+    } catch (err:any) {
+		inDevMode(() => logger.error(err.message));
+        throw new Error();
+    }
+}
