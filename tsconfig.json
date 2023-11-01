@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "target": "ES2016",
+		"lib": ["ES2020"],
+        "esModuleInterop": true,
+        "strict": true,
+        "baseUrl": "./src",
+		"forceConsistentCasingInFileNames": true,
+        "paths": {
+            "@controllers/*":["controllers/*.ts"],
+            "@config/*":["config/*.ts"],
+            "@model/*":["model/*.ts"],
+            "@middleware":["middleware/middleware.ts"],
+            "@routes/*":["routes/*.ts"],
+            "@services/*":["services/*.ts"],
+            "@custom-types/*":["types/*.ts"],
+            "@utilities/*":["utilities/*.ts"],
+            "@app":["app.ts"]
+        },
+        "typeRoots": ["node_modules/@types", "types"]
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["node_modules"]
+}

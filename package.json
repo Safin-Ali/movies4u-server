@@ -1,0 +1,46 @@
+{
+	"name": "express-typescript-basic-boilerplate",
+	"version": "1.0.0",
+	"description": "basic express app boilerplate",
+	"main": "dist/index.js",
+	"scripts": {
+		"start": "node dist/index.js",
+		"build": "tsc && clear && tspr -s src",
+		"dev": "ts-node-dev --respawn -r tsconfig-paths/register src/index.ts"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Safin-Ali/express-typescript-basic-boilerplate"
+	},
+	"keywords": [
+		"back-end",
+		"nodejs",
+		"server-code",
+		"expressjs",
+		"mongoose",
+		"mongodb",
+		"dot-env",
+		"jwt"
+	],
+	"author": "Safin Ali",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/Safin-Ali/express-typescript-basic-boilerplate"
+	},
+	"homepage": "https://github.com/Safin-Ali/express-typescript-basic-boilerplate#readme",
+	"dependencies": {
+		"cors": "^2.8.5",
+		"dotenv": "^16.3.1",
+		"express": "^4.18.2"
+	},
+	"devDependencies": {
+		"@types/cors": "^2.8.15",
+		"@types/express": "^4.17.20",
+		"@typescript-eslint/eslint-plugin": "^6.9.1",
+		"@typescript-eslint/parser": "^6.9.1",
+		"ts-node-dev": "^2.0.0",
+		"tsconfig-paths": "^4.2.0",
+		"tsconfig-paths-resolver": "^1.0.1",
+		"typescript": "^5.2.2"
+	}
+}
