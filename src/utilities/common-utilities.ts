@@ -1,4 +1,6 @@
+import { apiBaseUrl } from '@config/env-var';
 import { RouteHandlerType } from '@custom-types/types';
+import logger from './color-logger';
 import {Response} from 'express';
 
 
@@ -60,3 +62,22 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
 export function sendServerError(res:Response ,statusCode: number = 500, errorMessage:string = `Internal Server Error`): void {
     res.status(statusCode).json({ errorMessage:  errorMessage});
 }
+
+/**
+ * this function provide html content for generate particuler movie download link
+ * Fetches movies based on the provided option type.
+ * @param {string} optType - The type of option to be used for fetching movies.
+ * @returns {Promise<Response>} - A promise that resolves to the HTTP response from the server.
+ * @throws {Error} - If there is an error during the fetch request.
+ */
+export const fetchMovieHtml = async (optType:string = ''): Promise<string | Error> => {
+	try {
+		const fetchRes = fetch(apiBaseUrl+optType)
+		const result = await (await fetchRes).text();
+		return result
+	} catch (err:any) {
+		logger.error(err.message)
+		throw Error()
+	}
+};
+
