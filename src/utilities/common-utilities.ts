@@ -1,4 +1,5 @@
 import { RouteHandlerType } from '@custom-types/types';
+import {Response} from 'express';
 
 
 /**
@@ -48,3 +49,14 @@ import { RouteHandlerType } from '@custom-types/types';
 export const routeHandler = <Return = void, Req = undefined>(callback: RouteHandlerType<Return, Req>): RouteHandlerType<Return, Req> => {
 	return callback;
 };
+
+/**
+ * Sends a server-side error message to the client with the specified HTTP status code.
+ * @param {Response} res - The HTTP response object.
+ * @param {number} statusCode - The HTTP status code to be sent to the client.
+ * @param {string} errorMessage - The error message to be sent to the client.
+ */
+
+export function sendServerError(res:Response ,statusCode: number = 500, errorMessage:string = `Internal Server Error`): void {
+    res.status(statusCode).json({ errorMessage:  errorMessage});
+}
