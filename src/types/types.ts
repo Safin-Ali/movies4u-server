@@ -10,6 +10,7 @@ export type RouteHandlerRequestType <Req> = Req extends undefined ? Request : Re
 
 export type RouteHandlerType <Return,CustomReq> = (req: RouteHandlerRequestType<CustomReq>, res: Response) => RouteHandlerReturnType<Return>;
 
+export type DownloadUrlTuple = [string,string,string]
 export interface MovieDLScrapQuery {
 	title:string,
 	lang:string,
