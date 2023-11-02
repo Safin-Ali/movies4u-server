@@ -36,7 +36,7 @@ export const getPageUrl = (html: string, { lang, title, year }: MovieDLScrapQuer
 		// movie title
 		const scrapedTitle = $(elm).text().toLowerCase();
 
-		if (scrapedTitle.includes(`download ${title.toLowerCase()}`) && scrapedTitle.includes(lang.toLowerCase()) && scrapedTitle.includes(year))
+		if (scrapedTitle.includes(title.toLowerCase()) && scrapedTitle.includes(lang.toLowerCase()) && scrapedTitle.includes(year))
 			pageUrl = visitUrl;
 	});
 
