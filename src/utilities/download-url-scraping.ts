@@ -1,5 +1,6 @@
 import { DownloadUrlTuple, MovieDLScrapQuery, } from '@custom-types/types';
 import { load } from 'cheerio';
+import { fetchMovieHtml, logError, sendServerError } from './common-utilities';
 
 
 /**
@@ -101,4 +102,44 @@ const getDownloadUrl = (html: string):DownloadUrlTuple  => {
 	// Returns the array of download URLs.
 	return dlStatus
 
+};
+
+
+/**
+ * Retrieves download URLs for a given movie based on the provided query.
+ *
+ * This function performs the following steps:
+ * 1. Fetches `HTML content` for the movie `search` results page.
+ * 2. Extracts the `URL` of the movie `details page`.
+ * 3. Retrieves download URLs for different `resolutions` `(480p, 720p, 1080p)` from the details page.
+ *
+ * @async
+ * @function
+ *
+ * @param {MovieDLScrapQuery} query - The query containing movie `title`, `language`, and `year`.
+ *
+ * @throws {Error} Will throw an error if any step of the process fails.
+ *
+ * @returns {Promise<DownloadUrlTuple | void>} - An array containing download URLs for resolutions `['480p', '720p', '1080p']`, or `void` if an error occurs.
+ */
+
+export const movieDLScraping = async (query: MovieDLScrapQuery):Promise<DownloadUrlTuple | void> => {
+	try {
+		// Step 1: Fetch HTML content for the movie search results page.
+		const html = await fetchMovieHtml(`/?s=${query.title.toLowerCase()}`);
+
+		// Step 2: Extract the URL of the movie details page.
+		const pageUrl = getPageUrl(html as string, query);
+
+		// when movie not in search result
+		if(!pageUrl) return ['','',''];
+
+		// Step 3: Retrieve download URLs for different resolutions (480p, 720p, 1080p) from the details page.
+		const linkArr = getDownloadUrl(await (await fetch(pageUrl)).text());
+
+		return linkArr;
+
+	} catch (err: any) {
+		logError(err);
+	}
 };
