@@ -1,6 +1,6 @@
 import { fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
 import { movieDLScraping } from '@utilities/download-url-scraping';
-import languagesIso from 'data/iso-lang';
+import languagesIso from '@data/iso-lang';
 
 /**
  * Retrieves a list of movies from The Movie Database (TMDB) based on a query.

@@ -17,6 +17,7 @@
             "@services/*":["services/*.ts"],
             "@custom-types/*":["types/*.ts"],
             "@utilities/*":["utilities/*.ts"],
+            "@data/*":["data/*.ts"],
             "@app":["app.ts"]
         },
         "typeRoots": ["node_modules/@types", "types"]
