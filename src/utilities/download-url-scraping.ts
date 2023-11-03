@@ -141,5 +141,6 @@ export const movieDLScraping = async (query: MovieDLScrapQuery):Promise<Download
 
 	} catch (err: any) {
 		logError(err);
+		throw Error();
 	}
 };
