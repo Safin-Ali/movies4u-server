@@ -81,9 +81,9 @@ export const logError = (err: Error): void => inDevMode(() => logger.error(err.m
  */
 export const fetchMovieHtml = async (optType: string = ''): Promise<string | Error> => {
 	try {
-		const fetchRes = fetch(moviesModbaseurl + optType)
+		const fetchRes = fetch(moviesModbaseurl + optType);
 		const result = await (await fetchRes).text();
-		return result
+		return result;
 	} catch (err: any) {
 		logError(err);
 		throw Error();
@@ -110,4 +110,4 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 		logError(err);
 		throw new Error();
 	}
-}
+};

@@ -7,7 +7,7 @@ import { fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/c
 export const getMovies = routeHandler(async (req, res) => {
 	try {
 		const moviesList = fetchTMDB(req.query.q as string);
-		res.status(200).send(moviesList)
+		res.status(200).send(moviesList);
 	} catch (err:any) {
 		logError(err);
 		sendServerError(res);

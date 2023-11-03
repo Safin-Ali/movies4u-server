@@ -1,6 +1,6 @@
 import { DownloadUrlTuple, MovieDLScrapQuery, } from '@custom-types/types';
 import { load } from 'cheerio';
-import { fetchMovieHtml, logError, sendServerError } from './common-utilities';
+import { fetchMovieHtml, logError } from './common-utilities';
 
 
 /**
@@ -97,10 +97,10 @@ const getDownloadUrl = (html: string):DownloadUrlTuple  => {
 			dlStatus[1] = downloadUrl!;
 		if (currH.includes('1080p'))
 			dlStatus[2] = downloadUrl!;
-	})
+	});
 
 	// Returns the array of download URLs.
-	return dlStatus
+	return dlStatus;
 
 };
 
