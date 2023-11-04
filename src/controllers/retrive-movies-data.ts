@@ -8,7 +8,7 @@ import languagesIso from '@data/iso-lang';
  */
 export const getMovies = routeHandler(async (req, res) => {
 	try {
-		const moviesList = fetchTMDB(req.query.q as string);
+		const moviesList = await fetchTMDB(req.query.q as string);
 		res.status(200).send(moviesList);
 	} catch (err:any) {
 		logError(err);
