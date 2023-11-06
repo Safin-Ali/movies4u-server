@@ -7,7 +7,8 @@
 	"scripts": {
 		"start": "node src/index.js",
 		"build": "tsc && clear && tspr -s src",
-		"dev": "ts-node-dev --respawn --cls -r tsconfig-paths/register src/index.ts"
+		"dev": "ts-node-dev --respawn --cls -r tsconfig-paths/register src/index.ts",
+		"deploy":"yarn build && vercel --prod"
 	},
 	"repository": {
 		"type": "git",

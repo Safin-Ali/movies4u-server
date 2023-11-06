@@ -20,6 +20,7 @@ export const getMovies = routeHandler(async (req, res) => {
 /**
  * Handler for getting movie details info by movie ID and released date.
  *
+ * @example `?q=787781&y=2023-09-09`
  * @function
  * @async
  * @returns {Promise<void>} - Resolves when the response is sent.
