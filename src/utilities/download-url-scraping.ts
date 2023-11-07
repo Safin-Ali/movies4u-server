@@ -1,18 +1,13 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, } from '@custom-types/types';
 import { load } from 'cheerio';
-import { logError } from './common-utilities';
+import { fetchHtml, logError } from './common-utilities';
 import { movies_db_url } from '@config/env-var';
 
-export class CreateDownloadLink {
+class WebScrap {
 	private dlUrlArr: ResPostIdTuple = ['', '', ''];
-	private postIdArr: ResPostIdTuple = ['', '', ''];
+	public postIdArr: ResPostIdTuple = ['', '', ''];
 
-	constructor({ title, year }: DownloadInfoParams) {
-		this.getPostId({ title, year }).then(res => {
-			this.postIdArr = res;
-			console.log(this.postIdArr);
-
-		});
+	constructor() {
 	}
 
 	/**
@@ -25,15 +20,11 @@ export class CreateDownloadLink {
 	 * @returns {ResPostIdTuple} `array of post id`.
 	 */
 
-	private async getPostId(arg: MovieDLScrapQuery): Promise<ResPostIdTuple> {
+	public async getPostId(arg: MovieDLScrapQuery): Promise<ResPostIdTuple> {
 		// movie res visiting page post id
 		const postIdArr: ResPostIdTuple = ['', '', ''];
 		try {
-			const html = await (await fetch(`${movies_db_url}?s=${arg.title}`, {
-				headers: {
-					'Content-Type': 'text/html'
-				}
-			})).text();
+			const html = await fetchHtml(`${movies_db_url}?s=${arg.title}`);
 
 			// Loads HTML content to create a cheerio instance.
 			const $ = load(html);
@@ -68,8 +59,7 @@ export class CreateDownloadLink {
 					switch (this.checkResolution(scrapedTitle)) {
 
 					case '480p':
-						// eslint-disable-next-line indent
-							postIdArr[0] = moviePostId;
+						postIdArr[0] = moviePostId;
 						break;
 					case '720p':
 						postIdArr[1] = moviePostId;
@@ -80,6 +70,8 @@ export class CreateDownloadLink {
 					}
 				}
 			});
+
+			this.postIdArr = postIdArr;
 
 			return postIdArr;
 		} catch (err: any) {
@@ -108,9 +100,8 @@ export class CreateDownloadLink {
 		return '1080p';
 
 	}
+}
 
-	public getInfo() {
-		const postIdArr = this.postIdArr;
-		return { postIdArr };
-	}
+export class GenerateLink extends WebScrap {
+
 }
