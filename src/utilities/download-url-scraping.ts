@@ -1,146 +1,116 @@
-import { DownloadUrlTuple, MovieDLScrapQuery, } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, } from '@custom-types/types';
 import { load } from 'cheerio';
-import { fetchMovieHtml, logError } from './common-utilities';
+import { logError } from './common-utilities';
+import { movies_db_url } from '@config/env-var';
 
+export class CreateDownloadLink {
+	private dlUrlArr: ResPostIdTuple = ['', '', ''];
+	private postIdArr: ResPostIdTuple = ['', '', ''];
 
-/**
- *
- * search movies by title and lang and return matched movie visit or single page `url`
- *
- * @param {string} html - html as a string for `manipulate`.
- * @param {MovieDLScrapQuery} query - for matching movie `title` and `language`.
- * @returns {string} string of `movie details pageUrl`.
- */
+	constructor({ title, year }: DownloadInfoParams) {
+		this.getPostId({ title, year }).then(res => {
+			this.postIdArr = res;
+			console.log(this.postIdArr);
 
-export const getPageUrl = (html: string, { lang, title, year }: MovieDLScrapQuery): string => {
-
-	// Loads HTML content to create a cheerio instance.
-	const $ = load(html);
-
-	// Remove all script and style elements from the body.
-	$('body style, body script').remove();
-
-	// Get the element of all collected matches movies name
-	const matchesMovies = $('body #content_box .post-cards article.latestPost h2.title.front-view-title a');
-
-	// visit page url
-	let pageUrl: string = '';
-
-	// if no one movies found then send empty string
-	if (!matchesMovies.length) return pageUrl;
-
-	matchesMovies.each((_, elm) => {
-		// movie page path
-		const visitUrl = elm.attribs.href;
-
-		// movie title
-		const scrapedTitle = $(elm).text().toLowerCase();
-
-		if (scrapedTitle.includes(title.toLowerCase()) && scrapedTitle.includes(lang.toLowerCase()) && scrapedTitle.includes(year))
-			pageUrl = visitUrl;
-	});
-
-	return pageUrl;
-};
-
-/**
- * Retrieves download URLs based on the provided HTML content.
- *
- * @param {string} html - The `HTML` content to parse.
- * @returns {DownloadUrlTuple} - An array containing download URLs for resolutions `['480p', '720p', '1080p']`.
- */
-
-const getDownloadUrl = (html: string):DownloadUrlTuple  => {
-
-	// Loads HTML content to create a cheerio instance.
-	const $ = load(html);
-
-	// Remove all script and style elements from the body.
-	$('body style, body script').remove();
+		});
+	}
 
 	/**
-	 * Get all donwload button elments previous `h3` or `h4` element.
-	 * that will be determine and set movie downalod url based on `resolution` type.
+	 *
+	 * search movies by title and year and return matched movie post id based on resolulation
+	 *
+	 * if not found then return empty `array`.
+	 *
+	 * @param {MovieDLScrapQuery} arg -  title and year for find movie post id.
+	 * @returns {ResPostIdTuple} `array of post id`.
 	 */
-	const dlHeader = $('body #content_box .single_post .thecontent.clearfix a.maxbutton-1.maxbutton.maxbutton-download-links').parent('p').prev('h3,h4');
+
+	private async getPostId(arg: MovieDLScrapQuery): Promise<ResPostIdTuple> {
+		// movie res visiting page post id
+		const postIdArr: ResPostIdTuple = ['', '', ''];
+		try {
+			const html = await (await fetch(`${movies_db_url}?s=${arg.title}`, {
+				headers: {
+					'Content-Type': 'text/html'
+				}
+			})).text();
+
+			// Loads HTML content to create a cheerio instance.
+			const $ = load(html);
+
+			// Remove all script and style elements from the body.
+			$('body style, body script').remove();
+
+			// Get the element of all collected matches movies name
+			const matchesMovies = $('body #primary #post-wrapper .post-wrapper-hentry article');
+
+			// if no one movies found then send empty string
+			if (!matchesMovies.length) return postIdArr;
+
+
+			matchesMovies.each((_, elm) => {
+				// movie post id
+				/**
+					 * movie post id that will be require for next route
+					 */
+				const moviePostId = elm.attribs.id.split('-')[1];
+
+				// // the current movie element header
+				const scrapedTitle = $(elm).find('header.entry-header a').text().toLowerCase();
+
+				if (scrapedTitle.includes(arg.title) && scrapedTitle.includes(arg.year)) {
+
+					/**
+						 * Stores download URLs.
+						 * The array order is `important` for `resolutions` `['480p', '720p', '1080p']`.
+						 * @type {string}
+						*/
+					switch (this.checkResolution(scrapedTitle)) {
+
+					case '480p':
+						// eslint-disable-next-line indent
+							postIdArr[0] = moviePostId;
+						break;
+					case '720p':
+						postIdArr[1] = moviePostId;
+						break;
+					default:
+						postIdArr[2] = moviePostId;
+						break;
+					}
+				}
+			});
+
+			return postIdArr;
+		} catch (err: any) {
+			logError(err);
+			return postIdArr;
+		}
+	}
 
 	/**
-	 * Stores download URLs.
-	 * The array order is `important` for `resolutions` `['480p', '720p', '1080p']`.
-	 * @type {Array<string>}
+	 * checking resolution types are `480p`, `720p`, `1080p`.
+	 *
+	 * @param {string} title - title for checking included resolution or not
+	 * @returns {ResolutionLiteral} - An string which would be `480p` || `720p` || `1080p`.
 	 */
-	const dlStatus: DownloadUrlTuple = ['', '', ''];
 
-	/**
-		 * Iterates through the found button elements preceding header elements.
-		 * Resolution types are '480p', '720p', '1080p'.
-		 * Always sets the latest or last matched resolution URL.
-		 */
-	dlHeader.each((_, elm) => {
+	private checkResolution(title: string): ResolutionLiteral {
 
 		/**
-		 * The text content of the current header element (h3 or h4).
-		 * @type {string}
-		 */
-		const currH: string = $(elm).text();
-
-		/**
-		 * The download URL associated with the current header element.
-		 * @type {string}
-		 */
-		const downloadUrl: string = $(elm).next('p:first').children('a').attr('href')!;
+			 * Resolution types are '480p', '720p', '1080p'.
+			* Always sets the latest or last matched resolution URL.
+		*/
 
 		// Sets the download URL based on resolution type.
-		if (currH.includes('480p'))
-			dlStatus[0] = downloadUrl!;
-		if (currH.includes('720p'))
-			dlStatus[1] = downloadUrl!;
-		if (currH.includes('1080p'))
-			dlStatus[2] = downloadUrl!;
-	});
+		if (title.includes('480p')) return '480p';
+		if (title.includes('720p')) return '720p';
+		return '1080p';
 
-	// Returns the array of download URLs.
-	return dlStatus;
-
-};
-
-
-/**
- * Retrieves download URLs for a given movie based on the provided query.
- *
- * This function performs the following steps:
- * 1. Fetches `HTML content` for the movie `search` results page.
- * 2. Extracts the `URL` of the movie `details page`.
- * 3. Retrieves download URLs for different `resolutions` `(480p, 720p, 1080p)` from the details page.
- *
- * @async
- * @function
- *
- * @param {MovieDLScrapQuery} query - The query containing movie `title`, `language`, and `year`.
- *
- * @throws {Error} Will throw an error if any step of the process fails.
- *
- * @returns {Promise<DownloadUrlTuple | void>} - An array containing download URLs for resolutions `['480p', '720p', '1080p']`, or `void` if an error occurs.
- */
-
-export const movieDLScraping = async (query: MovieDLScrapQuery):Promise<DownloadUrlTuple | void> => {
-	try {
-		// Step 1: Fetch HTML content for the movie search results page.
-		const html = await fetchMovieHtml(`/?s=${query.title.toLowerCase()}`);
-
-		// Step 2: Extract the URL of the movie details page.
-		const pageUrl = getPageUrl(html as string, query);
-
-		// when movie not in search result
-		if(!pageUrl) return ['','',''];
-
-		// Step 3: Retrieve download URLs for different resolutions (480p, 720p, 1080p) from the details page.
-		const linkArr = getDownloadUrl(await (await fetch(pageUrl)).text());
-
-		return linkArr;
-
-	} catch (err: any) {
-		logError(err);
-		throw Error();
 	}
-};
+
+	public getInfo() {
+		const postIdArr = this.postIdArr;
+		return { postIdArr };
+	}
+}
