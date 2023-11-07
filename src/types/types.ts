@@ -28,4 +28,12 @@ export interface MovieDLScrapQuery {
 	year:string
 }
 
+export interface MovieDLServer {
+	fastS:string,
+	gDrive:string,
+	others:string
+}
+
+export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]
+
 export type CustomRouter = [string, createRouter.Router];

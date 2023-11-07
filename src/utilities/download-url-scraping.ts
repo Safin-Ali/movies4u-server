@@ -1,4 +1,4 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, } from '@custom-types/types';
 import { load } from 'cheerio';
 import { fetchHtml, logError } from './common-utilities';
 import { movies_db_url } from '@config/env-var';
@@ -102,6 +102,52 @@ class WebScrap {
 	}
 }
 
+/**
+ * A class which will get the actual download url
+ */
 export class GenerateLink extends WebScrap {
 
+	constructor({ title, year }: DownloadInfoParams) {
+
+		// call the WebScrap class
+		super();
+
+		// auto invoke all method
+		(async () => {
+			await this.getPostId({ title, year });
+			const serverArr = this.getServerUrl();
+		})();
+	}
+
+	/**
+	 * get the serverUrl for 480p, 720p, 1080p `resolution`.
+	 * `Note`: the return array order same as resolution tuple order.
+	 * @return {MovieDLServerReturn} - array tuple with three type url object.
+	 */
+	private async getServerUrl():Promise<MovieDLServerReturn> {
+
+		/**
+		 * get every post id server source page `promise`
+		 */
+		const resPromiseIns = this.postIdArr.map(async (id) => {
+			const res = await fetchHtml(`${movies_db_url}/archives/${id}`);
+			return res;
+		});
+
+		// resolve server source page `promise`
+		const resSerListP = await Promise.all(resPromiseIns);
+
+		// iterate every page and retrieve current resoluation `fastServer`, `googleDrive`, `othersLink` url
+		const resSerList = resSerListP.map((elm): MovieDLServer => {
+			const $ = load(elm);
+			return {
+				fastS: $('a.maxbutton')[0].attribs.href || '',
+				gDrive: $('a.maxbutton')[1].attribs.href || '',
+				others: $('a.maxbutton')[2].attribs.href || '',
+			};
+
+		});
+
+		return resSerList as MovieDLServerReturn;
+	}
 }
