@@ -92,3 +92,24 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 		throw new Error();
 	}
 };
+
+
+/**
+ * Fetches HTML content from a given URL.
+ * @param {string} url - The URL to fetch the HTML content from.
+ * @returns {Promise<string>} A promise that resolves to the HTML content.
+ * @throws {Error} If the fetch operation fails.
+ */
+export const fetchHtml = async (url: string): Promise<any> => {
+	try {
+		const response = await (await fetch(url,{
+			headers: {
+				'Content-Type': 'text/html'
+			}
+		})).text();
+		return response;
+	} catch (err:any) {
+		logError(err);
+		throw new Error(`Failed to fetch: ${err.message}`);
+	}
+};
