@@ -1,4 +1,4 @@
-import {tmdb_api } from '@config/env-var';
+import { tmdb_api } from '@config/env-var';
 import { RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
 import { Response } from 'express';
@@ -69,7 +69,10 @@ export function sendServerError(res: Response, statusCode: number = 500, errorMe
  * @param {Error} err - The error message to be logged.
  * @returns {void}
  */
-export const logError = (err: Error): void => inDevMode(() => logger.error(err.message));
+export const logError = (err: Error): void => inDevMode(() => {
+	logger.error(err.message);
+	logger.process(err.stack || '');
+});
 
 /**
  * Fetches JSON data from the specified URL.
@@ -80,7 +83,7 @@ export const logError = (err: Error): void => inDevMode(() => logger.error(err.m
 export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 	try {
 		const response = await (await fetch(`https://api.themoviedb.org/3/${optPrefix}`, {
-			method:'GET',
+			method: 'GET',
 			headers: {
 				accept: 'application/json',
 				Authorization: `Bearer ${tmdb_api}`
@@ -93,22 +96,23 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 	}
 };
 
-
 /**
  * Fetches HTML content from a given URL.
  * @param {string} url - The URL to fetch the HTML content from.
  * @returns {Promise<string>} A promise that resolves to the HTML content.
  * @throws {Error} If the fetch operation fails.
  */
-export const fetchHtml = async (url: string): Promise<any> => {
+export const fetchHtml = async (url: string, option?:any): Promise<any> => {
+	const defaultOpt = {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'text/html'
+		}
+	};
 	try {
-		const response = await (await fetch(url,{
-			headers: {
-				'Content-Type': 'text/html'
-			}
-		})).text();
+		const response = await (await fetch(url, option || defaultOpt)).text();
 		return response;
-	} catch (err:any) {
+	} catch (err: any) {
 		logError(err);
 		throw new Error(`Failed to fetch: ${err.message}`);
 	}
