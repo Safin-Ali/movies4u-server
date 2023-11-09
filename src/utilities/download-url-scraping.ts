@@ -2,13 +2,17 @@ import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParam
 import { load } from 'cheerio';
 import { fetchHtml, logError } from './common-utilities';
 import { movies_db_url } from '@config/env-var';
+import { URL } from 'url';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
-class WebScrap {
-	private dlUrlArr: ResPostIdTuple = ['', '', ''];
+/**
+ * this class for scrape the movie actual page by `seraching`
+ * where the movie each `480p` `720p` `1080p` url stored and
+ * finally store `Post Id` array
+ */
+class MoviePageScrape {
 	public postIdArr: ResPostIdTuple = ['', '', ''];
-
-	constructor() {
-	}
 
 	/**
 	 *
@@ -103,9 +107,10 @@ class WebScrap {
 }
 
 /**
- * A class which will get the actual download url
+ * this class scrape and bypass human
+ * verification and return actual movie link
  */
-export class GenerateLink extends WebScrap {
+export class GenerateLink extends MoviePageScrape {
 
 	constructor({ title, year }: DownloadInfoParams) {
 
@@ -115,7 +120,9 @@ export class GenerateLink extends WebScrap {
 		// auto invoke all method
 		(async () => {
 			await this.getPostId({ title, year });
-			const serverArr = this.getServerUrl();
+			const serverArr = await this.getServerUrl();
+			const driveSeedPath = await this.verifyPage(serverArr[0]);
+
 		})();
 	}
 
@@ -141,13 +148,99 @@ export class GenerateLink extends WebScrap {
 		const resSerList = resSerListP.map((elm): MovieDLServer => {
 			const $ = load(elm);
 			return {
-				fastS: $('a.maxbutton')[0].attribs.href || '',
-				gDrive: $('a.maxbutton')[1].attribs.href || '',
-				others: $('a.maxbutton')[2].attribs.href || '',
+				fastS: $('a.maxbutton')[0].attribs.href.replace('https://oddfirm.com/?id=','') || '',
+				gDrive: $('a.maxbutton')[1].attribs.href.replace('https://oddfirm.com/?id=','') || '',
+				others: $('a.maxbutton')[2].attribs.href.replace('https://oddfirm.com/?id=','') || '',
 			};
 
 		});
 
 		return resSerList as MovieDLServerReturn;
+	}
+
+	/**
+	 *
+	 * @param {MovieDLServer} serverObj
+	 * @returns
+	 */
+	private async verifyPage(serverObj:MovieDLServer):Promise<string> {
+		try{
+			// Step 1:
+
+			// get odm step 1 verified page for retrieve cookie token from html
+			const verifiedS1 = await fetchHtml('https://oddfirm.com/',{
+				method:'POST',
+				headers:{
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: `_wp_http=${serverObj.fastS}`,
+			});
+
+			//cheerio load varified step 1 page content
+			let $ = load(verifiedS1);
+
+			// get form element
+			const formElm = $(`body form`);
+
+			// temporary credential for generating refresh url
+			const tempToken = {
+				nextPgUrl:formElm[0].attribs.action,
+				_wp_http2:``,
+				token:''
+			};
+
+			// find input element and retrieve _wp_http2 token and encoded refresh token
+			formElm.find('input').each((_,{attribs}) => {
+				if(attribs.name === '_wp_http2') tempToken._wp_http2 = `${encodeURIComponent(attribs.value)}`;
+				if(attribs.name === 'token') tempToken.token = `token=${encodeURIComponent(attribs.value)}`;
+			});
+
+			// Step 2:
+
+			// get odm step 2 verified page for retrieve decoded refresh token
+			const verifiedS2 = await fetchHtml(tempToken.nextPgUrl,{
+				method:'POST',
+				headers:{
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body:`_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
+			});
+
+			// a regular expression pattern to match the content within the first pair of single quotes for s_343 which had to decoded refresh token.
+			const pattern = /s_343\('(.*?)'/;
+
+			// Use the regular expression to find the first argument value of s_343 function
+			const matches = verifiedS2.match(pattern);
+
+			if(!matches || !matches[1]) return '';
+
+			// retrieve verified redirect page html
+			const redirectPage = await fetchHtml(`https://oddfirm.com/?go=${matches[1]}`,{
+				method:'GET',
+				headers:{
+					'Cookie' : `${matches[1]}=${tempToken._wp_http2}`
+				}
+			});
+
+			// load redirect page html
+			$ = load(redirectPage);
+
+			// odm redirect page meta tag for refresh driveseed url
+			const odmRedUrl = {
+				redUrl:$('meta')[1].attribs.content.replace('0;url=',''),
+				domain:new URL($('meta')[1].attribs.content.replace('0;url=','')).origin
+			};
+
+			// verified driveseed page html
+			const verifiedDriveSeed = await fetchHtml(odmRedUrl.redUrl);
+
+			// finally extract driveseed path where the video is stored with super fast link
+			return `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
+
+		} catch(err:any) {
+			logError(err);
+			return '';
+		}
+
 	}
 }
