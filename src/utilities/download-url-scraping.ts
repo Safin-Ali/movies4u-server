@@ -1,10 +1,8 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DownloadLinkServerType, } from '@custom-types/types';
 import { load } from 'cheerio';
 import { fetchHtml, logError } from './common-utilities';
 import { movies_db_url } from '@config/env-var';
 import { URL } from 'url';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
 
 /**
  * this class for scrape the movie actual page by `seraching`
@@ -112,17 +110,34 @@ class MoviePageScrape {
  */
 export class GenerateLink extends MoviePageScrape {
 
+	private downloadUrl:Promise<ResPostIdTuple>;
+
 	constructor({ title, year }: DownloadInfoParams) {
 
 		// call the WebScrap class
 		super();
 
-		// auto invoke all method
-		(async () => {
+		// automatic set download link tuple promise
+		this.downloadUrl = (async () => {
+			let downloadLinkArr:ResPostIdTuple;
 			await this.getPostId({ title, year });
 			const serverArr = await this.getServerUrl();
-			const driveSeedPath = await this.verifyPage(serverArr[0]);
 
+			// for all video all resolution download link promise
+			const allResDlLinkP = serverArr.map(async (s) => {
+				try {
+					if(!s.fastS) return '';
+					const driveSeedPath = await this.verifyPage(s);
+					const downloadLink = await this.getDirectLink(driveSeedPath);
+					return downloadLink;
+				} catch (err:any) {
+					logError(err);
+					return '';
+				}
+			});
+
+			// set allResDlLinkP resolved promised value
+			return Promise.all(allResDlLinkP) as Promise<ResPostIdTuple>;
 		})();
 	}
 
@@ -241,6 +256,71 @@ export class GenerateLink extends MoviePageScrape {
 			logError(err);
 			return '';
 		}
+	}
+
+	/**
+	 * scrap driveseed `gofile.io` button and retrieve link.
+	 * @param {string} driveSeed - driveseed current movie path url.
+	 * @param {DownloadLinkServerType} server - the server type for retrieve active download url `default server is 'gofile'`
+	 */
+
+	private async getDirectLink (driveSeed:string,server:DownloadLinkServerType = 'gofile'):Promise<string> {
+
+		let dlCdnUrl:string = '';
+
+		// get dirveseed home page html
+		const dshp = await fetchHtml(driveSeed);
+
+		// load cheerio resolved page html
+		let $ = load(dshp);
+
+		// get domain name from this params
+		const origin = new URL(driveSeed).origin;
+
+		// get link from direct download link server page
+		const ddlFunc = async ():Promise<void> => {
+			try{
+				// direct download server page html
+				const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
+
+				// update $ cheerio load previous html to ddlp resolved html
+				$ = load(ddlp);
+
+				// select direct download server page download button 1
+				dlCdnUrl = $('a:contains("Download")')[0].attribs.href;
+			} catch (err:any) {
+				logError(err);
+				this.getDirectLink(driveSeed,'instant');
+			}
+		};
+
+		// get link from dirveseed home page gofile.io button
+		const gofiledlFunc = (): void => {
+			try {
+				dlCdnUrl = $('a:contains("gofile.io")')[0].attribs.href;
+			} catch (err:any) {
+				logError(err);
+				this.getDirectLink(driveSeed,'directL');
+
+			}
+		};
+
+		switch (server) {
+		case 'directL':
+			ddlFunc();
+			break;
+		case 'instant':
+			// ddlFunc();
+			break;
+		case 'directD':
+			// ddlFunc();
+			break;
+		default:
+			gofiledlFunc();
+			break;
+		}
+
+		return dlCdnUrl;
 
 	}
 }

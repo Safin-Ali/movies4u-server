@@ -34,6 +34,8 @@ export interface MovieDLServer {
 	others:string
 }
 
+export type DownloadLinkServerType = 'gofile' | 'instant' | 'directL' | 'directD'
+
 export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]
 
 export type CustomRouter = [string, createRouter.Router];
