@@ -323,4 +323,9 @@ export class GenerateLink extends MoviePageScrape {
 		return dlCdnUrl;
 
 	}
+
+	// to get download link tuple promises
+	public getUrl ():typeof this.downloadUrl {
+		return this.downloadUrl;
+	}
 }
