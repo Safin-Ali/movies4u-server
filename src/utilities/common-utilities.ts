@@ -1,9 +1,9 @@
 import { tmdb_api } from '@config/env-var';
 import { RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
-import { Response } from 'express';
+import { Response as ResponseX } from 'express';
 import inDevMode from './development-mode';
-
+import nodeFetch from 'node-fetch';
 
 /**
  * Creates a route handler function.
@@ -60,7 +60,7 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
  * @param {string} errorMessage - The error message to be sent to the client.
  */
 
-export function sendServerError(res: Response, statusCode: number = 500, errorMessage: string = `Internal Server Error`): void {
+export function sendServerError(res: ResponseX, statusCode: number = 500, errorMessage: string = `Internal Server Error`): void {
 	res.status(statusCode).json({ errorMessage: errorMessage });
 }
 
@@ -82,7 +82,7 @@ export const logError = (err: Error): void => inDevMode(() => {
  */
 export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 	try {
-		const response = await (await fetch(`https://api.themoviedb.org/3/${optPrefix}`, {
+		const response = await (await nodeFetch(`https://api.themoviedb.org/3/${optPrefix}`, {
 			method: 'GET',
 			headers: {
 				accept: 'application/json',
@@ -99,18 +99,20 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 /**
  * Fetches HTML content from a given URL.
  * @param {string} url - The URL to fetch the HTML content from.
+ * @param {any} option - Request Header Option.
  * @returns {Promise<string>} A promise that resolves to the HTML content.
  * @throws {Error} If the fetch operation fails.
  */
 export const fetchHtml = async (url: string, option?:any): Promise<any> => {
+
 	const defaultOpt = {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'text/html'
-		}
+		},
 	};
 	try {
-		const response = await (await fetch(url, option || defaultOpt)).text();
+		const response = await (await nodeFetch(url, option || defaultOpt)).text();
 		return response;
 	} catch (err: any) {
 		logError(err);
