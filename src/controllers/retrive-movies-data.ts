@@ -1,6 +1,5 @@
 import { fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
-import { movieDLScraping } from '@utilities/download-url-scraping';
-import languagesIso from '@data/iso-lang';
+import { GenerateLink } from '@utilities/download-url-scraping';
 
 /**
  * Retrieves a list of movies from The Movie Database (TMDB) based on a query.
@@ -33,17 +32,12 @@ export const getMovieById = routeHandler(async (req,res) => {
 		const details = await fetchTMDB(req.query.q as string);
 
 		// Extracts the year from the provided movie release date.
-		const movieYear = (req.query.y as string).split('-')[0];
+		const year = (req.query.y as string).split('-')[0];
 
-		// Converts the ISO language code of the movie to original language.
-		const movieLang = languagesIso[details.original_language as keyof typeof languagesIso];
-
-		// Scrapes download URL for the movie.
-		const downloadUrl = await movieDLScraping({
-			title:details.original_title,
-			lang: movieLang,
-			year: movieYear
-		});
+		const downloadUrl = await new GenerateLink({
+			title: details.original_title.toLowerCase(),
+			year
+		}).getUrl();
 
 		// Sends a successful response with movie details and download URL.
 		res.status(200).send({
