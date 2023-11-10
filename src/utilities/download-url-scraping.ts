@@ -3,6 +3,7 @@ import { load } from 'cheerio';
 import { fetchHtml, logError } from './common-utilities';
 import { movies_db_url } from '@config/env-var';
 import { URL } from 'url';
+import nodeFetch from 'node-fetch';
 
 /**
  * this class for scrape the movie actual page by `seraching`
@@ -278,30 +279,46 @@ export class GenerateLink extends MoviePageScrape {
 		const origin = new URL(driveSeed).origin;
 
 		// get link from dirveseed home page gofile.io button
-		(():void => {
+		await (async ():Promise<void> => {
 			try {
-				dlCdnUrl = $('a:contains("gofile.io")')[0].attribs.href;
+				const link = $('a:contains("gofile.io")')[0].attribs.href;
+				// link header status
+				const linkActiveSts = (await nodeFetch(link,{
+					method:'HEAD'
+				})).status;
+				this.checkDlUrl(linkActiveSts);
+				dlCdnUrl = link;
+
 			} catch (err:any) {
 				logError(err);
 			}
 		})();
 
-		if(!dlCdnUrl)
-		// get link from direct download link server page
+		// try to direct link page server
+		if(!dlCdnUrl) {
+			// get link from direct download link server page
 			await (async():Promise<void> => {
 				try{
-					// direct download server page html
+				// direct download server page html
 					const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
 
 					// update $ cheerio load previous html to ddlp resolved html
 					$ = load(ddlp);
 
 					// select direct download server page download button 1
-					dlCdnUrl = $('a:contains("Download")')[0].attribs.href;
+					const link = $('a:contains("Download")')[0].attribs.href;
+					// link header status
+					const linkActiveSts = (await nodeFetch(link,{
+						method:'HEAD'
+					})).status;
+					this.checkDlUrl(linkActiveSts);
+					dlCdnUrl = link;
+
 				} catch (err:any) {
 					logError(err);
 				}
 			})();
+		}
 
 		return dlCdnUrl;
 
@@ -311,4 +328,10 @@ export class GenerateLink extends MoviePageScrape {
 	public getUrl ():typeof this.downloadUrl {
 		return this.downloadUrl;
 	}
+
+	// throw error if the download link is not active or redirect 301 or 302 status found
+	private checkDlUrl (status: number):Error | void {
+		if(status === 301 || status === 302) throw Error ('link is not active');
+	}
+
 }
