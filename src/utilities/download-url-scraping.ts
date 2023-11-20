@@ -284,7 +284,8 @@ export class GenerateLink extends MoviePageScrape {
 				const link = $('a:contains("gofile.io")')[0].attribs.href;
 				// link header status
 				const linkActiveSts = (await nodeFetch(link,{
-					method:'HEAD'
+					method:'HEAD',
+					redirect:'manual'
 				})).status;
 				this.checkDlUrl(linkActiveSts);
 				dlCdnUrl = link;
@@ -309,7 +310,8 @@ export class GenerateLink extends MoviePageScrape {
 					const link = $('a:contains("Download")')[0].attribs.href;
 					// link header status
 					const linkActiveSts = (await nodeFetch(link,{
-						method:'HEAD'
+						method:'HEAD',
+						redirect:'manual'
 					})).status;
 					this.checkDlUrl(linkActiveSts);
 					dlCdnUrl = link;
