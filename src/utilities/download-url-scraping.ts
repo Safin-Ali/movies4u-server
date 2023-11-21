@@ -111,7 +111,7 @@ class MoviePageScrape {
  */
 export class GenerateLink extends MoviePageScrape {
 
-	private downloadUrl:Promise<ResPostIdTuple>;
+	private downloadUrl: Promise<ResPostIdTuple>;
 
 	constructor({ title, year }: DownloadInfoParams) {
 
@@ -119,7 +119,7 @@ export class GenerateLink extends MoviePageScrape {
 		super();
 		// automatic set download link tuple promise
 		this.downloadUrl = (async () => {
-			let downloadLinkArr:ResPostIdTuple;
+			let downloadLinkArr: ResPostIdTuple;
 			await this.getPostId({ title, year });
 
 			const serverArr = await this.getServerUrl();
@@ -127,11 +127,11 @@ export class GenerateLink extends MoviePageScrape {
 			// for all video all resolution download link promise
 			const allResDlLinkP = serverArr.map(async (s) => {
 				try {
-					if(!s.fastS) return '';
+					if (!s.fastS) return '';
 					const driveSeedPath = await this.verifyPage(s);
 					const downloadLink = await this.getDirectLink(driveSeedPath);
 					return downloadLink;
-				} catch (err:any) {
+				} catch (err: any) {
 					logError(err);
 					return '';
 				}
@@ -147,7 +147,7 @@ export class GenerateLink extends MoviePageScrape {
 	 * `Note`: the return array order same as resolution tuple order.
 	 * @return {MovieDLServerReturn} - array tuple with three type url object.
 	 */
-	private async getServerUrl():Promise<MovieDLServerReturn> {
+	private async getServerUrl(): Promise<MovieDLServerReturn> {
 
 		/**
 		 * get every post id server source page `promise`
@@ -164,9 +164,9 @@ export class GenerateLink extends MoviePageScrape {
 		const resSerList = resSerListP.map((elm): MovieDLServer => {
 			const $ = load(elm);
 			return {
-				fastS: $('a.maxbutton')[0].attribs.href.replace('https://oddfirm.com/?id=','') || '',
-				gDrive: $('a.maxbutton')[1].attribs.href.replace('https://oddfirm.com/?id=','') || '',
-				others: $('a.maxbutton')[2].attribs.href.replace('https://oddfirm.com/?id=','') || '',
+				fastS: $('a.maxbutton')[0].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
+				gDrive: $('a.maxbutton')[1].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
+				others: $('a.maxbutton')[2].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
 			};
 
 		});
@@ -179,14 +179,14 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param {MovieDLServer} serverObj
 	 * @returns
 	 */
-	private async verifyPage(serverObj:MovieDLServer):Promise<string> {
-		try{
+	private async verifyPage(serverObj: MovieDLServer): Promise<string> {
+		try {
 			// Step 1:
 
 			// get odm step 1 verified page for retrieve cookie token from html
-			const verifiedS1 = await fetchHtml('https://oddfirm.com/',{
-				method:'POST',
-				headers:{
+			const verifiedS1 = await fetchHtml('https://oddfirm.com/', {
+				method: 'POST',
+				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: `_wp_http=${serverObj.fastS}`,
@@ -200,26 +200,26 @@ export class GenerateLink extends MoviePageScrape {
 
 			// temporary credential for generating refresh url
 			const tempToken = {
-				nextPgUrl:formElm[0].attribs.action,
-				_wp_http2:``,
-				token:''
+				nextPgUrl: formElm[0].attribs.action,
+				_wp_http2: ``,
+				token: ''
 			};
 
 			// find input element and retrieve _wp_http2 token and encoded refresh token
-			formElm.find('input').each((_,{attribs}) => {
-				if(attribs.name === '_wp_http2') tempToken._wp_http2 = `${encodeURIComponent(attribs.value)}`;
-				if(attribs.name === 'token') tempToken.token = `token=${encodeURIComponent(attribs.value)}`;
+			formElm.find('input').each((_, { attribs }) => {
+				if (attribs.name === '_wp_http2') tempToken._wp_http2 = `${encodeURIComponent(attribs.value)}`;
+				if (attribs.name === 'token') tempToken.token = `token=${encodeURIComponent(attribs.value)}`;
 			});
 
 			// Step 2:
 
 			// get odm step 2 verified page for retrieve decoded refresh token
-			const verifiedS2 = await fetchHtml(tempToken.nextPgUrl,{
-				method:'POST',
-				headers:{
+			const verifiedS2 = await fetchHtml(tempToken.nextPgUrl, {
+				method: 'POST',
+				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
-				body:`_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
+				body: `_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
 			});
 
 			// a regular expression pattern to match the content within the first pair of single quotes for s_343 which had to decoded refresh token.
@@ -228,13 +228,13 @@ export class GenerateLink extends MoviePageScrape {
 			// Use the regular expression to find the first argument value of s_343 function
 			const matches = verifiedS2.match(pattern);
 
-			if(!matches || !matches[1]) return '';
+			if (!matches || !matches[1]) return '';
 
 			// retrieve verified redirect page html
-			const redirectPage = await fetchHtml(`https://oddfirm.com/?go=${matches[1]}`,{
-				method:'GET',
-				headers:{
-					'Cookie' : `${matches[1]}=${tempToken._wp_http2}`
+			const redirectPage = await fetchHtml(`https://oddfirm.com/?go=${matches[1]}`, {
+				method: 'GET',
+				headers: {
+					'Cookie': `${matches[1]}=${tempToken._wp_http2}`
 				}
 			});
 
@@ -243,8 +243,8 @@ export class GenerateLink extends MoviePageScrape {
 
 			// odm redirect page meta tag for refresh driveseed url
 			const odmRedUrl = {
-				redUrl:$('meta')[1].attribs.content.replace('0;url=',''),
-				domain:new URL($('meta')[1].attribs.content.replace('0;url=','')).origin
+				redUrl: $('meta')[1].attribs.content.replace('0;url=', ''),
+				domain: new URL($('meta')[1].attribs.content.replace('0;url=', '')).origin
 			};
 
 			// verified driveseed page html
@@ -253,7 +253,7 @@ export class GenerateLink extends MoviePageScrape {
 			// finally extract driveseed path where the video is stored with super fast link
 			return `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
 
-		} catch(err:any) {
+		} catch (err: any) {
 			logError(err);
 			return '';
 		}
@@ -265,9 +265,9 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param {DownloadLinkServerType} server - the server type for retrieve active download url `default server is 'gofile'`
 	 */
 
-	private async getDirectLink (driveSeed:string):Promise<string> {
+	private async getDirectLink(driveSeed: string): Promise<string> {
 
-		let dlCdnUrl:string = '';
+		let dlCdnUrl: string = '';
 
 		// get dirveseed home page html
 		const dshp = await fetchHtml(driveSeed);
@@ -278,29 +278,67 @@ export class GenerateLink extends MoviePageScrape {
 		// get domain name from this params
 		const origin = new URL(driveSeed).origin;
 
-		// get link from dirveseed home page gofile.io button
-		await (async ():Promise<void> => {
+		// get link from dirveseed home page cloud resume download button
+		await (async (): Promise<void> => {
 			try {
-				const link = $('a:contains("gofile.io")')[0].attribs.href;
+				const link = $('a:contains(" Cloud Resume Download ")')[0].attribs.href;
 				// link header status
-				const linkActiveSts = (await nodeFetch(link,{
-					method:'HEAD',
-					redirect:'manual'
+				const linkActiveSts = (await nodeFetch(link, {
+					method: 'HEAD',
+					redirect: 'manual'
 				})).status;
 				this.checkDlUrl(linkActiveSts);
 				dlCdnUrl = link;
 
-			} catch (err:any) {
+			} catch (err: any) {
 				logError(err);
 			}
 		})();
 
+		// get link from dirveseed home page gofile.io button
+		await (async (): Promise<void> => {
+			try {
+				const link = $('a:contains("gofile.io")')[0].attribs.href;
+				// link header status
+				const linkActiveSts = (await nodeFetch(link, {
+					method: 'HEAD',
+					redirect: 'manual'
+				})).status;
+				this.checkDlUrl(linkActiveSts);
+				dlCdnUrl = link;
+
+			} catch (err: any) {
+				logError(err);
+			}
+		})();
+
+		// try to pixeldrain.com
+		if (!dlCdnUrl) {
+			// get link from dirveseed home page pixeldrain.com button
+			await (async (): Promise<void> => {
+				try {
+					const link = `https://pixeldrain.com/api/file/${$('a:contains("pixeldrain.com")')[0].attribs.href.split('/').slice(-1)[0]}?download`;
+
+					// link header status
+					const linkActiveSts = (await nodeFetch(link, {
+						method: 'HEAD',
+						redirect: 'manual'
+					})).status;
+					this.checkDlUrl(linkActiveSts);
+					dlCdnUrl = link;
+
+				} catch (err: any) {
+					logError(err);
+				}
+			})();
+		}
+
 		// try to direct link page server
-		if(!dlCdnUrl) {
+		if (!dlCdnUrl) {
 			// get link from direct download link server page
-			await (async():Promise<void> => {
-				try{
-				// direct download server page html
+			await (async (): Promise<void> => {
+				try {
+					// direct download server page html
 					const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
 
 					// update $ cheerio load previous html to ddlp resolved html
@@ -309,14 +347,16 @@ export class GenerateLink extends MoviePageScrape {
 					// select direct download server page download button 1
 					const link = $('a:contains("Download")')[0].attribs.href;
 					// link header status
-					const linkActiveSts = (await nodeFetch(link,{
-						method:'HEAD',
-						redirect:'manual'
+					const linkActiveSts = (await nodeFetch(link, {
+						method: 'HEAD',
+						redirect: 'manual'
 					})).status;
 					this.checkDlUrl(linkActiveSts);
 					dlCdnUrl = link;
+					console.log(driveSeed);
 
-				} catch (err:any) {
+
+				} catch (err: any) {
 					logError(err);
 				}
 			})();
@@ -327,13 +367,13 @@ export class GenerateLink extends MoviePageScrape {
 	}
 
 	// to get download link tuple promises
-	public getUrl ():typeof this.downloadUrl {
+	public getUrl(): typeof this.downloadUrl {
 		return this.downloadUrl;
 	}
 
 	// throw error if the download link is not active or redirect 301 or 302 status found
-	private checkDlUrl (status: number):Error | void {
-		if(status === 301 || status === 302) throw Error ('link is not active');
+	private checkDlUrl(status: number): Error | void {
+		if (status === 301 || status === 302 || status !== 200) throw Error('link is not active');
 	}
 
 }
