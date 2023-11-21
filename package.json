@@ -5,7 +5,7 @@
 	"main": "src/index.js",
 	"type": "commonjs",
 	"scripts": {
-		"start": "node src/index.js",
+		"start": "ts-node -r tsconfig-paths/register src/index.ts",
 		"build": "tsc && clear && tspr -s src",
 		"dev": "ts-node-dev --respawn --cls -r tsconfig-paths/register src/index.ts"
 	},
@@ -31,7 +31,8 @@
 		"cors": "^2.8.5",
 		"dotenv": "^16.3.1",
 		"express": "^4.18.2",
-		"node-fetch": "2"
+		"node-fetch": "2",
+		"ts-node": "^10.9.1"
 	},
 	"devDependencies": {
 		"@types/cors": "^2.8.15",
@@ -44,5 +45,8 @@
 		"tsconfig-paths": "^4.2.0",
 		"tsconfig-paths-resolver": "^1.0.1",
 		"typescript": "^5.2.2"
-	}
+	},
+	"engines": {
+		"node": ">=16"
+	  }
 }
