@@ -274,6 +274,21 @@ class GenerateLink extends MoviePageScrape {
       let $ = (0, cheerio_1.load)(dshp);
       // get domain name from this params
       const origin = new url_1.URL(driveSeed).origin;
+      // get link from dirveseed home page cloud resume download button
+      yield (() => __awaiter(this, void 0, void 0, function* () {
+        try {
+          const link = $('a:contains(" Cloud Resume Download ")')[0].attribs.href;
+          // link header status
+          const linkActiveSts = (yield (0, node_fetch_1.default)(link, {
+            method: 'HEAD',
+            redirect: 'manual'
+          })).status;
+          this.checkDlUrl(linkActiveSts);
+          dlCdnUrl = link;
+        } catch (err) {
+          (0, common_utilities_1.logError)(err);
+        }
+      }))();
       // get link from dirveseed home page gofile.io button
       yield (() => __awaiter(this, void 0, void 0, function* () {
         try {
@@ -289,6 +304,24 @@ class GenerateLink extends MoviePageScrape {
           (0, common_utilities_1.logError)(err);
         }
       }))();
+      // try to pixeldrain.com
+      if (!dlCdnUrl) {
+        // get link from dirveseed home page pixeldrain.com button
+        yield (() => __awaiter(this, void 0, void 0, function* () {
+          try {
+            const link = `https://pixeldrain.com/api/file/${$('a:contains("pixeldrain.com")')[0].attribs.href.split('/').slice(-1)[0]}?download`;
+            // link header status
+            const linkActiveSts = (yield (0, node_fetch_1.default)(link, {
+              method: 'HEAD',
+              redirect: 'manual'
+            })).status;
+            this.checkDlUrl(linkActiveSts);
+            dlCdnUrl = link;
+          } catch (err) {
+            (0, common_utilities_1.logError)(err);
+          }
+        }))();
+      }
       // try to direct link page server
       if (!dlCdnUrl) {
         // get link from direct download link server page
@@ -307,6 +340,7 @@ class GenerateLink extends MoviePageScrape {
             })).status;
             this.checkDlUrl(linkActiveSts);
             dlCdnUrl = link;
+            console.log(driveSeed);
           } catch (err) {
             (0, common_utilities_1.logError)(err);
           }
@@ -321,7 +355,7 @@ class GenerateLink extends MoviePageScrape {
   }
   // throw error if the download link is not active or redirect 301 or 302 status found
   checkDlUrl(status) {
-    if (status === 301 || status === 302) throw Error('link is not active');
+    if (status === 301 || status === 302 || status !== 200) throw Error('link is not active');
   }
 }
 exports.GenerateLink = GenerateLink;
