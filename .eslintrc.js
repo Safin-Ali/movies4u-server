@@ -2,6 +2,7 @@ module.exports = {
 	'env': {
 		'node': true
 	},
+	root:true,
 	'extends': [
 		'eslint:recommended',
 		'plugin:@typescript-eslint/recommended'

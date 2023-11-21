@@ -1,46 +1,52 @@
 {
-	"name": "express-typescript-basic-boilerplate",
+	"name": "movies4u-server",
 	"version": "1.0.0",
-	"description": "basic express app boilerplate",
-	"main": "dist/index.js",
+	"description": "server-side codes for https://mov4u.com",
+	"main": "src/index.js",
+	"type": "commonjs",
 	"scripts": {
-		"start": "node dist/index.js",
+		"start": "ts-node -r tsconfig-paths/register src/index.ts",
 		"build": "tsc && clear && tspr -s src",
-		"dev": "ts-node-dev --respawn -r tsconfig-paths/register src/index.ts"
+		"dev": "ts-node-dev --respawn --cls -r tsconfig-paths/register src/index.ts"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Safin-Ali/express-typescript-basic-boilerplate"
+		"url": "git+https://github.com/Safin-Ali/movies4u-server"
 	},
 	"keywords": [
 		"back-end",
 		"nodejs",
 		"server-code",
 		"expressjs",
-		"mongoose",
-		"mongodb",
-		"dot-env",
-		"jwt"
+		"dot-env"
 	],
 	"author": "Safin Ali",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/Safin-Ali/express-typescript-basic-boilerplate"
+		"url": "https://github.com/Safin-Ali/movies4u-server/issues"
 	},
-	"homepage": "https://github.com/Safin-Ali/express-typescript-basic-boilerplate#readme",
+	"homepage": "https://github.com/Safin-Ali/movies4u-server#readme",
 	"dependencies": {
+		"cheerio": "^1.0.0-rc.12",
 		"cors": "^2.8.5",
 		"dotenv": "^16.3.1",
-		"express": "^4.18.2"
+		"express": "^4.18.2",
+		"node-fetch": "2",
+		"ts-node": "^10.9.1"
 	},
 	"devDependencies": {
 		"@types/cors": "^2.8.15",
 		"@types/express": "^4.17.20",
+		"@types/node-fetch": "^2.6.9",
 		"@typescript-eslint/eslint-plugin": "^6.9.1",
 		"@typescript-eslint/parser": "^6.9.1",
+		"eslint": "^8.52.0",
 		"ts-node-dev": "^2.0.0",
 		"tsconfig-paths": "^4.2.0",
 		"tsconfig-paths-resolver": "^1.0.1",
 		"typescript": "^5.2.2"
-	}
+	},
+	"engines": {
+		"node": ">=16"
+	  }
 }

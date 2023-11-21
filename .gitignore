@@ -51,6 +51,9 @@ web_modules/
 # Optional npm cache directory
 .npm
 
+# ignore build .js files
+/src/**/*.js
+
 # Optional eslint cache
 .eslintcache
 
@@ -128,3 +131,4 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+.vercel

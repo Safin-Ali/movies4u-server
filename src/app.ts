@@ -8,6 +8,7 @@ import Routes from '@routes/routes';
 
 import express, { Application} from 'express';
 import logger from '@utilities/color-logger';
+import inDevMode from '@utilities/development-mode';
 
 /**
  * Represents the main application class.
@@ -50,7 +51,7 @@ class App {
 	 */
 	startServer = () => {
 		this.expressApp.listen(port, () => {
-			logger.process(`The server is running on ${port}`);
+			inDevMode(() => logger.process(`The server is running on ${port}`));
 		});
 	};
 }
