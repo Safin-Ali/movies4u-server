@@ -1,5 +1,6 @@
 import { Request,Response } from 'express';
 import createRouter from 'express';
+import { Collection } from 'mongodb';
 
 export interface Custom_Requst <T> extends Request {
 	body:T
@@ -33,6 +34,8 @@ export interface MovieDLServer {
 	gDrive:string,
 	others:string
 }
+
+export type UseDBArg =  (collection:Collection) => Promise<any>;
 
 export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]
 
