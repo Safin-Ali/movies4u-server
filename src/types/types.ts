@@ -22,7 +22,8 @@ export type ResPostIdTuple = [string,string,string];
 
 export interface DownloadInfoParams {
 	title:string,
-	year:string
+	year:string,
+	postId?:ResPostIdTuple
 }
 export interface MovieDLScrapQuery {
 	title:string,
@@ -34,7 +35,7 @@ export interface MovieDLServer {
 	gDrive:string,
 	others:string
 }
-
+// InitDB clss method callback function singnature
 export type UseDBArg =  (collection:Collection) => Promise<any>;
 
 export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]

@@ -1,10 +1,10 @@
 import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer } from '@custom-types/types';
 import { load } from 'cheerio';
 import { fetchHtml, logError } from './common-utilities';
-import { movies_db_url } from '@config/env-var';
+import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { URL } from 'url';
 import nodeFetch from 'node-fetch';
-
+import { useDb } from '@app';
 /**
  * this class for scrape the movie actual page by `seraching`
  * where the movie each `480p` `720p` `1080p` url stored and
@@ -109,18 +109,32 @@ class MoviePageScrape {
  * this class scrape and bypass human
  * verification and return actual movie link
  */
+
 export class GenerateLink extends MoviePageScrape {
 
 	private downloadUrl: Promise<ResPostIdTuple>;
 
-	constructor({ title, year }: DownloadInfoParams) {
+	constructor({ title, year, postId }: DownloadInfoParams) {
 
 		// call the WebScrap class
 		super();
 		// automatic set download link tuple promise
 		this.downloadUrl = (async () => {
 			let downloadLinkArr: ResPostIdTuple;
-			await this.getPostId({ title, year });
+
+			if(!postId || !postId.length) {
+				await this.getPostId({ title, year });
+				await useDb(async (cl) => {
+					await cl.insertOne({
+						title,
+						year,
+						postId:this.postIdArr,
+						downloadUrl: ['','','']
+					});
+				});
+			} else {
+				this.postIdArr = postId;
+			}
 
 			const serverArr = await this.getServerUrl();
 
@@ -129,6 +143,7 @@ export class GenerateLink extends MoviePageScrape {
 				try {
 					if (!s.fastS) return '';
 					const driveSeedPath = await this.verifyPage(s);
+
 					const downloadLink = await this.getDirectLink(driveSeedPath);
 					return downloadLink;
 				} catch (err: any) {
@@ -147,13 +162,20 @@ export class GenerateLink extends MoviePageScrape {
 	 * `Note`: the return array order same as resolution tuple order.
 	 * @return {MovieDLServerReturn} - array tuple with three type url object.
 	 */
+
 	private async getServerUrl(): Promise<MovieDLServerReturn> {
 
 		/**
 		 * get every post id server source page `promise`
 		 */
 		const resPromiseIns = this.postIdArr.map(async (id) => {
-			const res = await fetchHtml(`${movies_db_url}/archives/${id}`);
+			const res = await fetchHtml(`${movies_db_url}/archives/${id}`,{
+				method:'GET',
+				redirect: 'follow',
+				headers: {
+					'Content-Type': 'text/html'
+				},
+			});
 			return res;
 		});
 
@@ -164,9 +186,10 @@ export class GenerateLink extends MoviePageScrape {
 		const resSerList = resSerListP.map((elm): MovieDLServer => {
 			const $ = load(elm);
 			return {
-				fastS: $('a.maxbutton')[0].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
-				gDrive: $('a.maxbutton')[1].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
-				others: $('a.maxbutton')[2].attribs.href.replace('https://oddfirm.com/?id=', '') || '',
+
+				fastS: $('a.maxbutton')[0].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
+				gDrive: $('a.maxbutton')[1].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
+				others: $('a.maxbutton')[2].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
 			};
 
 		});
@@ -179,18 +202,22 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param {MovieDLServer} serverObj
 	 * @returns
 	 */
+	
 	private async verifyPage(serverObj: MovieDLServer): Promise<string> {
 		try {
+
+			// get temporary cookie
+			const verifiedS1C = (await nodeFetch(`${verifyPageUrl}?sid=${serverObj.fastS}`)).headers.get('set-cookie')?.split(';')[0];
 			// Step 1:
 
-			// get odm step 1 verified page for retrieve cookie token from html
-			const verifiedS1 = await fetchHtml('https://oddfirm.com/', {
+			const verifiedS1 = (await fetchHtml(verifyPageUrl!, {
 				method: 'POST',
 				headers: {
+					'Cookie':verifiedS1C,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: `_wp_http=${serverObj.fastS}`,
-			});
+			}));
 
 			//cheerio load varified step 1 page content
 			let $ = load(verifiedS1);
@@ -217,6 +244,7 @@ export class GenerateLink extends MoviePageScrape {
 			const verifiedS2 = await fetchHtml(tempToken.nextPgUrl, {
 				method: 'POST',
 				headers: {
+					'Cookie':verifiedS1C,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: `_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
@@ -231,7 +259,7 @@ export class GenerateLink extends MoviePageScrape {
 			if (!matches || !matches[1]) return '';
 
 			// retrieve verified redirect page html
-			const redirectPage = await fetchHtml(`https://oddfirm.com/?go=${matches[1]}`, {
+			const redirectPage = await fetchHtml(`${verifyPageUrl}?go=${matches[1]}`, {
 				method: 'GET',
 				headers: {
 					'Cookie': `${matches[1]}=${tempToken._wp_http2}`
