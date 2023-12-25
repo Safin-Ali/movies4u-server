@@ -77,6 +77,11 @@ export const logError = (err: Error): void => inDevMode(() => {
 	logger.process(err.stack || '');
 });
 
+// throw error if the download link is not active or redirect 301 or 302 status found
+export const checkDlUrl = (status: number): Error | void => {
+	if (status === 301 || status === 302 || status === 404 || status !== 200) throw Error('link is not active');
+};
+
 /**
  * Fetches JSON data from the specified URL.
  * @param {string} optPrefix - The `path` or `query` or `params`
