@@ -138,9 +138,6 @@ export class GenerateLink extends MoviePageScrape {
 
 			const serverArr = await this.getServerUrl();
 
-			console.log(serverArr);
-
-
 			// for all video all resolution download link promise
 			const allResDlLinkP = serverArr.map(async (s) => {
 				try {
@@ -208,15 +205,13 @@ export class GenerateLink extends MoviePageScrape {
 	private async verifyPage(serverObj: MovieDLServer): Promise<string> {
 		try {
 
-			// get temporary cookie
-			const verifiedS1C = (await nodeFetch(`${verifyPageUrl}?sid=${serverObj.fastS}`)).headers.get('set-cookie')?.split(';')[0];
 			// Step 1:
 
 			const verifiedS1 = (await fetchHtml(verifyPageUrl!, {
 				method: 'POST',
 				headers: {
-					'Cookie':verifiedS1C,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'User-Agent':userAgent
 				},
 				body: `_wp_http=${serverObj.fastS}`,
 			}));
@@ -246,8 +241,8 @@ export class GenerateLink extends MoviePageScrape {
 			const verifiedS2 = await fetchHtml(tempToken.nextPgUrl, {
 				method: 'POST',
 				headers: {
-					'Cookie':verifiedS1C,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'User-Agent':userAgent
 				},
 				body: `_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
 			});
@@ -264,7 +259,8 @@ export class GenerateLink extends MoviePageScrape {
 			const redirectPage = await fetchHtml(`${verifyPageUrl}?go=${matches[1]}`, {
 				method: 'GET',
 				headers: {
-					'Cookie': `${matches[1]}=${tempToken._wp_http2}`
+					'Cookie': `${matches[1]}=${tempToken._wp_http2}`,
+					'User-Agent':userAgent
 				}
 			});
 
@@ -315,7 +311,10 @@ export class GenerateLink extends MoviePageScrape {
 				// link header status
 				const linkActiveSts = (await nodeFetch(link, {
 					method: 'HEAD',
-					redirect: 'manual'
+					redirect: 'manual',
+					headers:{
+						'User-Agent':userAgent
+					}
 				})).status;
 				this.checkDlUrl(linkActiveSts);
 				dlCdnUrl = link;
@@ -332,7 +331,10 @@ export class GenerateLink extends MoviePageScrape {
 				// link header status
 				const linkActiveSts = (await nodeFetch(link, {
 					method: 'HEAD',
-					redirect: 'manual'
+					redirect: 'manual',
+					headers:{
+						'User-Agent':userAgent
+					}
 				})).status;
 				this.checkDlUrl(linkActiveSts);
 				dlCdnUrl = link;
@@ -352,7 +354,10 @@ export class GenerateLink extends MoviePageScrape {
 					// link header status
 					const linkActiveSts = (await nodeFetch(link, {
 						method: 'HEAD',
-						redirect: 'manual'
+						redirect: 'manual',
+						headers:{
+							'User-Agent':userAgent
+						}
 					})).status;
 					this.checkDlUrl(linkActiveSts);
 					dlCdnUrl = link;
@@ -379,7 +384,10 @@ export class GenerateLink extends MoviePageScrape {
 					// link header status
 					const linkActiveSts = (await nodeFetch(link, {
 						method: 'HEAD',
-						redirect: 'manual'
+						redirect: 'manual',
+						headers:{
+							'User-Agent':userAgent
+						}
 					})).status;
 					this.checkDlUrl(linkActiveSts);
 					dlCdnUrl = link;
