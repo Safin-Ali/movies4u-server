@@ -32,8 +32,6 @@ export interface MovieDLScrapQuery {
 
 export interface MovieDLServer {
 	fastS:string,
-	gDrive:string,
-	others:string
 }
 // InitDB clss method callback function singnature
 export type UseDBArg =  (collection:Collection) => Promise<any>;

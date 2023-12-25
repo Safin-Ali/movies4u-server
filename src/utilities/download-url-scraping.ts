@@ -1,6 +1,6 @@
 import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer } from '@custom-types/types';
 import { load } from 'cheerio';
-import { fetchHtml, logError } from './common-utilities';
+import { fetchHtml, logError, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { URL } from 'url';
 import nodeFetch from 'node-fetch';
@@ -138,6 +138,9 @@ export class GenerateLink extends MoviePageScrape {
 
 			const serverArr = await this.getServerUrl();
 
+			console.log(serverArr);
+
+
 			// for all video all resolution download link promise
 			const allResDlLinkP = serverArr.map(async (s) => {
 				try {
@@ -173,7 +176,8 @@ export class GenerateLink extends MoviePageScrape {
 				method:'GET',
 				redirect: 'follow',
 				headers: {
-					'Content-Type': 'text/html'
+					'Content-Type': 'text/html',
+					'User-Agent': userAgent
 				},
 			});
 			return res;
@@ -187,9 +191,7 @@ export class GenerateLink extends MoviePageScrape {
 			const $ = load(elm);
 			return {
 
-				fastS: $('a.maxbutton')[0].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
-				gDrive: $('a.maxbutton')[1].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
-				others: $('a.maxbutton')[2].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '',
+				fastS: $('a.maxbutton')[0].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || ''
 			};
 
 		});
@@ -202,7 +204,7 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param {MovieDLServer} serverObj
 	 * @returns
 	 */
-	
+
 	private async verifyPage(serverObj: MovieDLServer): Promise<string> {
 		try {
 
