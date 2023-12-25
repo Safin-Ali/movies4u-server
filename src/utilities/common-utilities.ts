@@ -53,6 +53,9 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
 	return callback;
 };
 
+// common user agent
+export const userAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+
 /**
  * Sends a server-side error message to the client with the specified HTTP status code.
  * @param {Response} res - The HTTP response object.
@@ -103,12 +106,13 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
  * @returns {Promise<string>} A promise that resolves to the HTML content.
  * @throws {Error} If the fetch operation fails.
  */
-export const fetchHtml = async (url: string, option?:any): Promise<any> => {
+export const fetchHtml = async (url: string, option?: any): Promise<any> => {
 
 	const defaultOpt = {
 		method: 'GET',
 		headers: {
-			'Content-Type': 'text/html'
+			'Content-Type': 'text/html',
+			'User-Agent': userAgent
 		},
 	};
 	try {
