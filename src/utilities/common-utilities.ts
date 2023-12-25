@@ -100,6 +100,16 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 };
 
 /**
+ * Extract Temp token from driveseed
+ */
+
+export const extractDriveSeedKey = (pageStr: string) => {
+	const keyRegex = /formData\.append\("key", "([^"]+)"\);/;
+	const match = pageStr.match(keyRegex);
+	return match ? match[1] : null;
+};
+
+/**
  * Fetches HTML content from a given URL.
  * @param {string} url - The URL to fetch the HTML content from.
  * @param {any} option - Request Header Option.
