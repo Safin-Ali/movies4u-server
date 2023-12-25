@@ -1,6 +1,6 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DriveSeedDRCRes } from '@custom-types/types';
 import { load } from 'cheerio';
-import { fetchHtml, logError, userAgent } from './common-utilities';
+import { checkDlUrl, extractDriveSeedKey, fetchHtml, logError, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { URL } from 'url';
 import nodeFetch from 'node-fetch';
@@ -120,22 +120,24 @@ export class GenerateLink extends MoviePageScrape {
 		super();
 		// automatic set download link tuple promise
 		this.downloadUrl = (async () => {
-			let downloadLinkArr: ResPostIdTuple;
 
-			if(!postId || !postId.length) {
+			if (!postId || !postId.length) {
 				await this.getPostId({ title, year });
-				await useDb(async (cl) => {
-					await cl.insertOne({
-						title,
-						year,
-						postId:this.postIdArr,
-						downloadUrl: ['','','']
-					});
-				});
+
+				// save current movie scrapped post ID with blank download url
+				// await useDb(async (cl) => {
+				// 	await cl.insertOne({
+				// 		title,
+				// 		year,
+				// 		postId:this.postIdArr,
+				// 		downloadUrl: ['','','']
+				// 	});
+				// });
 			} else {
 				this.postIdArr = postId;
 			}
 
+			// get fastS server links array for current movie each resolution
 			const serverArr = await this.getServerUrl();
 
 			// for all video all resolution download link promise
@@ -144,8 +146,8 @@ export class GenerateLink extends MoviePageScrape {
 					if (!s.fastS) return '';
 					const driveSeedPath = await this.verifyPage(s);
 
-					const downloadLink = await this.getDirectLink(driveSeedPath);
-					return downloadLink;
+					// const downloadLink = await getDirectLink(driveSeedPath);
+					return '';
 				} catch (err: any) {
 					logError(err);
 					return '';
@@ -169,8 +171,8 @@ export class GenerateLink extends MoviePageScrape {
 		 * get every post id server source page `promise`
 		 */
 		const resPromiseIns = this.postIdArr.map(async (id) => {
-			const res = await fetchHtml(`${movies_db_url}/archives/${id}`,{
-				method:'GET',
+			const res = await fetchHtml(`${movies_db_url}/archives/${id}`, {
+				method: 'GET',
 				redirect: 'follow',
 				headers: {
 					'Content-Type': 'text/html',
@@ -198,6 +200,8 @@ export class GenerateLink extends MoviePageScrape {
 
 	/**
 	 *
+	 * verify middle position third party site
+	 *
 	 * @param {MovieDLServer} serverObj
 	 * @returns
 	 */
@@ -211,7 +215,7 @@ export class GenerateLink extends MoviePageScrape {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
-					'User-Agent':userAgent
+					'User-Agent': userAgent
 				},
 				body: `_wp_http=${serverObj.fastS}`,
 			}));
@@ -242,7 +246,7 @@ export class GenerateLink extends MoviePageScrape {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
-					'User-Agent':userAgent
+					'User-Agent': userAgent
 				},
 				body: `_wp_http2=${tempToken._wp_http2}&${tempToken.token}`
 			});
@@ -260,7 +264,7 @@ export class GenerateLink extends MoviePageScrape {
 				method: 'GET',
 				headers: {
 					'Cookie': `${matches[1]}=${tempToken._wp_http2}`,
-					'User-Agent':userAgent
+					'User-Agent': userAgent
 				}
 			});
 
@@ -285,133 +289,9 @@ export class GenerateLink extends MoviePageScrape {
 		}
 	}
 
-	/**
-	 * scrap driveseed `gofile.io` button and retrieve link.
-	 * @param {string} driveSeed - driveseed current movie path url.
-	 * @param {DownloadLinkServerType} server - the server type for retrieve active download url `default server is 'gofile'`
-	 */
-
-	private async getDirectLink(driveSeed: string): Promise<string> {
-
-		let dlCdnUrl: string = '';
-
-		// get dirveseed home page html
-		const dshp = await fetchHtml(driveSeed);
-
-		// load cheerio resolved page html
-		let $ = load(dshp);
-
-		// get domain name from this params
-		const origin = new URL(driveSeed).origin;
-
-		// get link from dirveseed home page cloud resume download button
-		await (async (): Promise<void> => {
-			try {
-				const link = $('a:contains(" Cloud Resume Download ")')[0].attribs.href;
-				// link header status
-				const linkActiveSts = (await nodeFetch(link, {
-					method: 'HEAD',
-					redirect: 'manual',
-					headers:{
-						'User-Agent':userAgent
-					}
-				})).status;
-				this.checkDlUrl(linkActiveSts);
-				dlCdnUrl = link;
-
-			} catch (err: any) {
-				logError(err);
-			}
-		})();
-
-		// get link from dirveseed home page gofile.io button
-		await (async (): Promise<void> => {
-			try {
-				const link = $('a:contains("gofile.io")')[0].attribs.href;
-				// link header status
-				const linkActiveSts = (await nodeFetch(link, {
-					method: 'HEAD',
-					redirect: 'manual',
-					headers:{
-						'User-Agent':userAgent
-					}
-				})).status;
-				this.checkDlUrl(linkActiveSts);
-				dlCdnUrl = link;
-
-			} catch (err: any) {
-				logError(err);
-			}
-		})();
-
-		// try to pixeldrain.com
-		if (!dlCdnUrl) {
-			// get link from dirveseed home page pixeldrain.com button
-			await (async (): Promise<void> => {
-				try {
-					const link = `https://pixeldrain.com/api/file/${$('a:contains("pixeldrain.com")')[0].attribs.href.split('/').slice(-1)[0]}?download`;
-
-					// link header status
-					const linkActiveSts = (await nodeFetch(link, {
-						method: 'HEAD',
-						redirect: 'manual',
-						headers:{
-							'User-Agent':userAgent
-						}
-					})).status;
-					this.checkDlUrl(linkActiveSts);
-					dlCdnUrl = link;
-
-				} catch (err: any) {
-					logError(err);
-				}
-			})();
-		}
-
-		// try to direct link page server
-		if (!dlCdnUrl) {
-			// get link from direct download link server page
-			await (async (): Promise<void> => {
-				try {
-					// direct download server page html
-					const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
-
-					// update $ cheerio load previous html to ddlp resolved html
-					$ = load(ddlp);
-
-					// select direct download server page download button 1
-					const link = $('a:contains("Download")')[0].attribs.href;
-					// link header status
-					const linkActiveSts = (await nodeFetch(link, {
-						method: 'HEAD',
-						redirect: 'manual',
-						headers:{
-							'User-Agent':userAgent
-						}
-					})).status;
-					this.checkDlUrl(linkActiveSts);
-					dlCdnUrl = link;
-					console.log(driveSeed);
-
-
-				} catch (err: any) {
-					logError(err);
-				}
-			})();
-		}
-
-		return dlCdnUrl;
-
-	}
-
 	// to get download link tuple promises
 	public getUrl(): typeof this.downloadUrl {
 		return this.downloadUrl;
-	}
-
-	// throw error if the download link is not active or redirect 301 or 302 status found
-	private checkDlUrl(status: number): Error | void {
-		if (status === 301 || status === 302 || status !== 200) throw Error('link is not active');
 	}
 
 }
