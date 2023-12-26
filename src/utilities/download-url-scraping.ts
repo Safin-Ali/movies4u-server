@@ -5,13 +5,17 @@ import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { URL } from 'url';
 import nodeFetch from 'node-fetch';
 import { useDb } from '@app';
+import logger from './color-logger';
+
+export const postIdDefultVal:ResPostIdTuple = ['', '', ''];
+
 /**
  * this class for scrape the movie actual page by `seraching`
  * where the movie each `480p` `720p` `1080p` url stored and
  * finally store `Post Id` array
  */
 class MoviePageScrape {
-	public postIdArr: ResPostIdTuple = ['', '', ''];
+	public postIdArr: ResPostIdTuple = [...postIdDefultVal];
 
 	/**
 	 *
@@ -25,7 +29,7 @@ class MoviePageScrape {
 
 	public async getPostId(arg: MovieDLScrapQuery): Promise<ResPostIdTuple> {
 		// movie res visiting page post id
-		const postIdArr: ResPostIdTuple = ['', '', ''];
+		const postIdArr: ResPostIdTuple = [...postIdDefultVal];
 		try {
 			const html = await fetchHtml(`${movies_db_url}?s=${arg.title}`);
 
@@ -112,27 +116,29 @@ class MoviePageScrape {
 
 export class GenerateLink extends MoviePageScrape {
 
-	private downloadUrl: Promise<ResPostIdTuple>;
+	private downloadTempUrl: Promise<ResPostIdTuple>;
 
 	constructor({ title, year, postId }: DownloadInfoParams) {
 
 		// call the WebScrap class
 		super();
-		// automatic set download link tuple promise
-		this.downloadUrl = (async () => {
+
+		// automatic set driveseed download link tuple promise
+		this.downloadTempUrl = (async () => {
 
 			if (!postId || !postId.length) {
 				await this.getPostId({ title, year });
 
 				// save current movie scrapped post ID with blank download url
-				// await useDb(async (cl) => {
-				// 	await cl.insertOne({
-				// 		title,
-				// 		year,
-				// 		postId:this.postIdArr,
-				// 		downloadUrl: ['','','']
-				// 	});
-				// });
+				await useDb(async (cl) => {
+					await cl.insertOne({
+						title,
+						year,
+						postId:this.postIdArr,
+						driveSeedUrl: [...postIdDefultVal],
+						tempLink:[...postIdDefultVal]
+					});
+				});
 			} else {
 				this.postIdArr = postId;
 			}
@@ -145,17 +151,30 @@ export class GenerateLink extends MoviePageScrape {
 				try {
 					if (!s.fastS) return '';
 					const driveSeedPath = await this.verifyPage(s);
-
-					// const downloadLink = await getDirectLink(driveSeedPath);
-					return '';
+					return driveSeedPath;
 				} catch (err: any) {
 					logError(err);
 					return '';
 				}
 			});
 
+			const driveSeedUrl = await Promise.all(allResDlLinkP);
+
+			await useDb(async(cl) => {
+				await cl.updateOne({title,year},{
+					'$set':{
+						'driveSeedUrl':driveSeedUrl
+					}
+				});
+			});
+
+			// iterate all driveseed filoe path url and get temp download cdn url
+			const dsDRCLink = driveSeedUrl.map(async (s) => {
+				const resUrl = await this.getDirectLinkDS(s);
+				return resUrl;
+			});
 			// set allResDlLinkP resolved promised value
-			return Promise.all(allResDlLinkP) as Promise<ResPostIdTuple>;
+			return Promise.all(dsDRCLink) as Promise<ResPostIdTuple>;
 		})();
 	}
 
@@ -289,9 +308,80 @@ export class GenerateLink extends MoviePageScrape {
 		}
 	}
 
+	/**
+	* scrap driveseed direct download button and retrieve link.
+	* @param {string} driveSeed - driveseed current movie path url.
+	*/
+	private getDirectLinkDS = async (driveSeed: string): Promise<string> => {
+
+		// store valid download url
+		let downloadCdn = '';
+
+		try{
+		// get dirveseed home page
+			const dshp = await nodeFetch(driveSeed, {
+				headers: {
+					'User-Agent': userAgent
+				}
+			});
+
+			// get domain name from this params
+			const { href, host } = new URL(driveSeed);
+
+			// temp cookie for driveseed file direct download button
+			const dsCookie = dshp.headers.get('Set-Cookie')?.split(';')[0];
+
+			// get refresh token value
+			const dsToken = extractDriveSeedKey(await dshp.text());
+
+			const formData = new URLSearchParams();
+			formData.append('action', 'direct');
+			formData.append('key', dsToken!);
+			formData.append('action_token', '');
+
+			// get driveseed direct download json
+			const dsddrResInfo: DriveSeedDRCRes = await (await nodeFetch(href, {
+				method: 'POST',
+				headers: {
+					'Cookie': dsCookie!,
+					'User-Agent': userAgent,
+					'x-token': host
+				},
+				body: formData
+			})).json();
+
+			if (dsddrResInfo.error && !dsddrResInfo.url) throw Error();
+
+			// driveseed direct download redirected page html
+			const finalDRCPage = await fetchHtml(dsddrResInfo.url);
+
+			// Extracting worker_url value using regex pattern
+			const workerURLPattern = /let worker_url = '([^']+)';/;
+			const matches = finalDRCPage.match(workerURLPattern);
+
+			if (matches && matches.length > 1) {
+
+				// link status active or not
+				checkDlUrl((await nodeFetch(matches[1],{
+					method:'HEAD',
+					headers:{
+						'User-Agent':userAgent
+					}
+				})).status);
+
+				downloadCdn = matches[1];
+			}
+			return downloadCdn;
+		} catch {
+		// here will be anothers site scrap class
+			logger.error('link is not valid');
+			return downloadCdn;
+		}
+	};
+
 	// to get download link tuple promises
-	public getUrl(): typeof this.downloadUrl {
-		return this.downloadUrl;
+	public getUrl(): typeof this.downloadTempUrl {
+		return this.downloadTempUrl;
 	}
 
 }
