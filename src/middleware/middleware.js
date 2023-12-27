@@ -11,9 +11,7 @@ Object.defineProperty(exports, "__esModule", {
 const express_1 = require("express");
 const cors_1 = __importDefault(require("cors"));
 const initMiddleware = app => {
-  // for JSON pharser
   app.use((0, express_1.json)());
-  // for CORS
   app.use((0, cors_1.default)());
 };
 exports.default = initMiddleware;
