@@ -171,7 +171,7 @@ export class GenerateLink extends MoviePageScrape {
 
 			// iterate all driveseed filoe path url and get temp download cdn url
 			const dsDRCLink = driveSeedUrl.map(async (s) => {
-				const resUrl = await this.getDirectLinkDRC(s);
+				const resUrl = await GenerateLink.getDirectLinkDRC(s);
 				return resUrl;
 			});
 			// set allResDlLinkP resolved promised value
@@ -313,7 +313,7 @@ export class GenerateLink extends MoviePageScrape {
 	* scrap driveseed direct download button and retrieve link.
 	* @param {string} driveSeed - driveseed current movie path url.
 	*/
-	private getDirectLinkDRC = async (driveSeedURL: string): Promise<string> => {
+	static getDirectLinkDRC = async (driveSeedURL: string): Promise<string> => {
 
 		// store valid download url
 		let downloadCdn = '';
@@ -387,7 +387,7 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param domain
 	 * @returns {Promise<string>}
 	 */
-	private getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<string> => {
+	static getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<string> => {
 		try{
 
 			// get dirveseed home page html
@@ -408,7 +408,7 @@ export class GenerateLink extends MoviePageScrape {
 			// select direct download server page download button 1
 			const link = $('a:contains("Download")')[0].attribs.href;
 			// link header status
-			const linkActiveSts = await getURLStatus(link);
+			const linkActiveSts = checkDLUrl(await getURLStatus(link));
 
 			!linkActiveSts && inDevMode(() => logger.warn('DDL link is not active'));
 

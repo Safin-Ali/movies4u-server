@@ -1,7 +1,8 @@
 import { useDb } from '@app';
 import { ResPostIdTuple } from '@custom-types/types';
+import { InitDB } from '@db';
 import logger from '@utilities/color-logger';
-import { fetchTMDB, getURLStatus, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
+import { checkDLUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError} from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
 import { GenerateLink, postIdDefultVal } from '@utilities/download-url-scraping';
 import nodeFetch from 'node-fetch';
@@ -56,7 +57,7 @@ export const getMovieById = routeHandler(async (req,res) => {
 		// store response value
 		let downloadUrlArr:ResPostIdTuple = [...postIdDefultVal];
 
-		// to call GenerateLink class
+		// to call GenerateLink class and update tempLink in db
 		const callGL = async (postId?:ResPostIdTuple) => {
 			const res = await new GenerateLink({
 				title,
@@ -65,13 +66,7 @@ export const getMovieById = routeHandler(async (req,res) => {
 			}).getUrl();
 			downloadUrlArr = res;
 
-			await useDb(async(cl) => {
-				await cl.updateOne(dbFilter,{
-					'$set':{
-						'tempLink':res
-					}
-				});
-			});
+			InitDB.updateTempLink(res,dbFilter);
 		};
 
 		/**
@@ -82,12 +77,30 @@ export const getMovieById = routeHandler(async (req,res) => {
 			await callGL();
 		} else {
 			// check link is active or not
-			const linkStatus = await getURLStatus(info.tempLink[0]);
+			const linkStatus = checkDLUrl(await getURLStatus(info.tempLink[0]));
 
 			// scrap again if link is not valid and save and return update link
 			if(!linkStatus) {
-				inDevMode(() => logger.warn('link is not valid'));
-				await callGL(info.postId);
+				inDevMode(() => logger.warn('links are not valid'));
+				// check driveSeed path link active or not
+				const driveSeedPathSts = checkDLUrl(await getURLStatus(info.driveSeedUrl[0]));
+				if(driveSeedPathSts) {
+
+					console.log('comed');
+
+
+					// get new actived link promises array
+					const newActLink: ResPostIdTuple= await Promise.all((info.driveSeedUrl as any[]).map(async (dsPath) => {
+						const res = await GenerateLink.getDirectLinkDRC(dsPath);
+						return res;
+					})) as ResPostIdTuple;
+					console.log(newActLink);
+					InitDB.updateTempLink(newActLink,dbFilter);
+					downloadUrlArr = newActLink as ResPostIdTuple;
+
+				} else {
+					await callGL(info.postId);
+				}
 			}
 
 			// if link already active then update to downloadUrl

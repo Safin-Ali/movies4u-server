@@ -1,9 +1,10 @@
 import { tmdb_api } from '@config/env-var';
-import { RouteHandlerType } from '@custom-types/types';
+import { ResPostIdTuple, RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
 import { Response as ResponseX } from 'express';
 import inDevMode from './development-mode';
 import nodeFetch from 'node-fetch';
+import { useDb } from '@app';
 
 /**
  * Creates a route handler function.

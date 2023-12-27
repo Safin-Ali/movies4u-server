@@ -1,5 +1,6 @@
+import { useDb } from '@app';
 import { dbName, db_uri } from '@config/env-var';
-import { UseDBArg } from '@custom-types/types';
+import { ResPostIdTuple, UseDBArg } from '@custom-types/types';
 import logger from '@utilities/color-logger';
 import { logError } from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
@@ -41,6 +42,29 @@ export class InitDB {
 			return data;
 
 		} catch (err: any) {
+			logError(err);
+		}
+	};
+
+	/**
+	 * update tempLink in db
+	 */
+
+	static updateTempLink = async (tempLinkArr:ResPostIdTuple,{title,year}:{title:string,year:string}):Promise<void> => {
+		try {
+		// query filter for mongodb
+			const dbFilter = {
+				title,
+				year
+			};
+			await useDb(async(cl) => {
+				await cl.updateOne(dbFilter,{
+					'$set':{
+						'tempLink':tempLinkArr
+					}
+				});
+			});
+		} catch (err:any) {
 			logError(err);
 		}
 	};
