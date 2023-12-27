@@ -19,7 +19,7 @@
             "@utilities/*":["utilities/*.ts"],
             "@data/*":["data/*.ts"],
             "@app":["app.ts"],
-			"@db":["database/db.ts"]
+			      "@db":["database/db.ts"]
         },
         "typeRoots": ["node_modules/@types", "types"]
     },

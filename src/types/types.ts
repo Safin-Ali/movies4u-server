@@ -46,4 +46,30 @@ export type UseDBArg = (collection: Collection) => Promise<any>;
 
 export type MovieDLServerReturn = [MovieDLServer, MovieDLServer, MovieDLServer]
 
+export type ResolutionLiteral = '480p' | '720p' | '1080p';
+
+/**
+ * Movie Resolution `Post ID`
+ * or
+ * A `Tuple` of `DownloadUrl`
+ */
+export type ResPostIdTuple = [string,string,string];
+
+export interface DownloadInfoParams {
+	title:string,
+	year:string
+}
+export interface MovieDLScrapQuery {
+	title:string,
+	year:string
+}
+
+export interface MovieDLServer {
+	fastS:string,
+	gDrive:string,
+	others:string
+}
+
+export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]
+
 export type CustomRouter = [string, createRouter.Router];
