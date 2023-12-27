@@ -9,6 +9,8 @@ import Routes from '@routes/routes';
 import express, { Application} from 'express';
 import logger from '@utilities/color-logger';
 import inDevMode from '@utilities/development-mode';
+import { UseDBArg } from '@custom-types/types';
+import { InitDB } from '@db';
 
 /**
  * Represents the main application class.
@@ -29,6 +31,11 @@ class App {
 	public expressApp: Application;
 
 	/**
+	 * method for use db instance
+	 */
+	public useDb: (cb:UseDBArg,closeBool?:boolean) => Promise<any>;
+
+	/**
 	 * The Routes instance for managing routes.
 	 * @type {Routes}
 	 */
@@ -41,6 +48,7 @@ class App {
 	 */
 	constructor() {
 		this.expressApp = this.express();
+		this.useDb = new InitDB().useDb;
 		initMiddleware(this.expressApp);
 		this.routes = new Routes(this.expressApp);
 	}
@@ -62,6 +70,6 @@ class App {
  */
 const app: App = new App();
 
-export const {startServer,expressApp} = app;
+export const {startServer,expressApp,useDb} = app;
 
 export default app;

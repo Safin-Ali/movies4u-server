@@ -53,6 +53,8 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
 	return callback;
 };
 
+// common user agent
+export const userAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 /**
  * Sends a server-side error message to the client with the specified HTTP status code.
  * @param {Response} res - The HTTP response object.
@@ -73,6 +75,41 @@ export const logError = (err: Error): void => inDevMode(() => {
 	logger.error(err.message);
 	logger.process(err.stack || '');
 });
+
+// throw error if the download link is not active or redirect 301 or 302 status found
+export const checkDLUrl = (status: number): boolean => {
+	if (status === 301 || status === 302 || status === 404 || status !== 200) return false;
+	return true;
+};
+
+/**
+ *
+ * get url `http` status
+ *
+ * @param url
+ * @param option
+ * @returns
+ */
+export const getURLStatus = async (url:string,option?:any):Promise<number> => {
+	try{
+		if(!option) {
+			option = {
+				headers:{
+					'User-Agent':userAgent
+				}
+			};
+		}
+		const httpSts = (await nodeFetch(url,{
+			...option,
+			method:'HEAD',
+		})).status;
+
+		return httpSts;
+	} catch (err:any) {
+		logError(err);
+		return 401;
+	}
+};
 
 /**
  * Fetches JSON data from the specified URL.
@@ -97,18 +134,29 @@ export const fetchTMDB = async (optPrefix: string = ''): Promise<any> => {
 };
 
 /**
+ * Extract Temp token from driveseed
+ */
+
+export const extractDriveSeedKey = (pageStr: string) => {
+	const keyRegex = /formData\.append\("key", "([^"]+)"\);/;
+	const match = pageStr.match(keyRegex);
+	return match ? match[1] : null;
+};
+
+/**
  * Fetches HTML content from a given URL.
  * @param {string} url - The URL to fetch the HTML content from.
  * @param {any} option - Request Header Option.
  * @returns {Promise<string>} A promise that resolves to the HTML content.
  * @throws {Error} If the fetch operation fails.
  */
-export const fetchHtml = async (url: string, option?:any): Promise<any> => {
 
+export const fetchHtml = async (url: string, option?: any): Promise<any> => {
 	const defaultOpt = {
 		method: 'GET',
 		headers: {
-			'Content-Type': 'text/html'
+			'Content-Type': 'text/html',
+			'User-Agent': userAgent
 		},
 	};
 	try {

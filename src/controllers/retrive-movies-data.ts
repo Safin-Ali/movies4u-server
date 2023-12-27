@@ -1,5 +1,11 @@
-import { fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
-import { GenerateLink } from '@utilities/download-url-scraping';
+import { useDb } from '@app';
+import { ResPostIdTuple } from '@custom-types/types';
+import { InitDB } from '@db';
+import logger from '@utilities/color-logger';
+import { checkDLUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError} from '@utilities/common-utilities';
+import inDevMode from '@utilities/development-mode';
+import { GenerateLink, postIdDefultVal } from '@utilities/download-url-scraping';
+import nodeFetch from 'node-fetch';
 
 /**
  * Retrieves a list of movies from The Movie Database (TMDB) based on a query.
@@ -31,18 +37,82 @@ export const getMovieById = routeHandler(async (req,res) => {
 		// Fetches details of a movie from TMDB.
 		const details = await fetchTMDB(req.query.q as string);
 
+		const title = details.original_title.toLowerCase();
+
 		// Extracts the year from the provided movie release date.
 		const year = (req.query.y as string).split('-')[0];
 
-		const downloadUrl = await new GenerateLink({
-			title: details.original_title.toLowerCase(),
+		// query filter for mongodb
+		const dbFilter = {
+			title,
 			year
-		}).getUrl();
+		};
+
+		// database response value
+		const info = await useDb(async (collection) => {
+			const val = await collection.findOne(dbFilter);
+			return val;
+		},true);
+
+		// store response value
+		let downloadUrlArr:ResPostIdTuple = [...postIdDefultVal];
+
+		// to call GenerateLink class and update tempLink in db
+		const callGL = async (postId?:ResPostIdTuple) => {
+			const res = await new GenerateLink({
+				title,
+				year,
+				postId
+			}).getUrl();
+			downloadUrlArr = res;
+
+			InitDB.updateTempLink(res,dbFilter);
+		};
+
+		/**
+		 * if own databse not have any info about current movie then it will be try generate download link and update and insert current movie all info
+		 * else set retrieved download url
+		 */
+		if(!info) {
+			await callGL();
+		} else {
+			// check link is active or not
+			const linkStatus = checkDLUrl(await getURLStatus(info.tempLink[0]));
+
+			// scrap again if link is not valid and save and return update link
+			if(!linkStatus) {
+				inDevMode(() => logger.warn('links are not valid'));
+				// check driveSeed path link active or not
+				const driveSeedPathSts = checkDLUrl(await getURLStatus(info.driveSeedUrl[0]));
+				if(driveSeedPathSts) {
+
+					console.log('comed');
+
+
+					// get new actived link promises array
+					const newActLink: ResPostIdTuple= await Promise.all((info.driveSeedUrl as any[]).map(async (dsPath) => {
+						const res = await GenerateLink.getDirectLinkDRC(dsPath);
+						return res;
+					})) as ResPostIdTuple;
+					console.log(newActLink);
+					InitDB.updateTempLink(newActLink,dbFilter);
+					downloadUrlArr = newActLink as ResPostIdTuple;
+
+				} else {
+					await callGL(info.postId);
+				}
+			}
+
+			// if link already active then update to downloadUrl
+			downloadUrlArr = info.tempLink;
+
+		}
 
 		// Sends a successful response with movie details and download URL.
+
 		res.status(200).send({
 			movieDetails:details,
-			downloadUrl
+			downloadUrl:downloadUrlArr
 		});
 	} catch (err:any) {
 		logError(err);

@@ -18,7 +18,8 @@
             "@custom-types/*":["types/*.ts"],
             "@utilities/*":["utilities/*.ts"],
             "@data/*":["data/*.ts"],
-            "@app":["app.ts"]
+            "@app":["app.ts"],
+			      "@db":["database/db.ts"]
         },
         "typeRoots": ["node_modules/@types", "types"]
     },
