@@ -83,6 +83,35 @@ export const checkDlUrl = (status: number): Error | void => {
 };
 
 /**
+ *
+ * get url `http` status
+ *
+ * @param url
+ * @param option
+ * @returns
+ */
+export const getURLStatus = async (url:string,option?:any):Promise<number> => {
+	try{
+		if(!option) {
+			option = {
+				headers:{
+					'User-Agent':userAgent
+				}
+			};
+		}
+		const httpSts = (await nodeFetch(url,{
+			...option,
+			method:'HEAD',
+		})).status;
+
+		return httpSts;
+	} catch (err:any) {
+		logError(err);
+		return 401;
+	}
+};
+
+/**
  * Fetches JSON data from the specified URL.
  * @param {string} optPrefix - The `path` or `query` or `params`
  * @returns {Promise<any>} - A promise that resolves to the parsed JSON data.
