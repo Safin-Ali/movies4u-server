@@ -9,8 +9,8 @@ import Routes from '@routes/routes';
 import express, { Application} from 'express';
 import logger from '@utilities/color-logger';
 import inDevMode from '@utilities/development-mode';
-import { InitDB } from 'database/db';
 import { UseDBArg } from '@custom-types/types';
+import { InitDB } from '@db';
 
 /**
  * Represents the main application class.
