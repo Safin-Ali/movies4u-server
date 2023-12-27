@@ -171,7 +171,7 @@ export class GenerateLink extends MoviePageScrape {
 
 			// iterate all driveseed filoe path url and get temp download cdn url
 			const dsDRCLink = driveSeedUrl.map(async (s) => {
-				const resUrl = await this.getDirectLinkDS(s);
+				const resUrl = await this.getDirectLinkDRC(s);
 				return resUrl;
 			});
 			// set allResDlLinkP resolved promised value
@@ -313,21 +313,21 @@ export class GenerateLink extends MoviePageScrape {
 	* scrap driveseed direct download button and retrieve link.
 	* @param {string} driveSeed - driveseed current movie path url.
 	*/
-	private getDirectLinkDS = async (driveSeed: string): Promise<string> => {
+	private getDirectLinkDRC = async (driveSeedURL: string): Promise<string> => {
 
 		// store valid download url
 		let downloadCdn = '';
 
 		try{
 		// get dirveseed home page
-			const dshp = await nodeFetch(driveSeed, {
+			const dshp = await nodeFetch(driveSeedURL, {
 				headers: {
 					'User-Agent': userAgent
 				}
 			});
 
 			// get domain name from this params
-			const { href, host } = new URL(driveSeed);
+			const url = new URL(driveSeedURL);
 
 			// temp cookie for driveseed file direct download button
 			const dsCookie = dshp.headers.get('Set-Cookie')?.split(';')[0];
@@ -340,13 +340,13 @@ export class GenerateLink extends MoviePageScrape {
 			formData.append('key', dsToken!);
 			formData.append('action_token', '');
 
-			// get driveseed direct download json
-			const dsddrResInfo: DriveSeedDRCRes = await (await nodeFetch(href, {
+			// get driveseed direct download response json
+			const dsddrResInfo: DriveSeedDRCRes = await (await nodeFetch(url.href, {
 				method: 'POST',
 				headers: {
 					'Cookie': dsCookie!,
 					'User-Agent': userAgent,
-					'x-token': host
+					'x-token': url.host
 				},
 				body: formData
 			})).json();
@@ -367,14 +367,56 @@ export class GenerateLink extends MoviePageScrape {
 				if(linkSts) {
 					downloadCdn = matches[1];
 				} else {
-					inDevMode(() => logger.warn('valid link is not founded'));
+					inDevMode(() => logger.warn('DRC valid link is not founded'));
+					downloadCdn = await this.getDirectLinkDDL(driveSeedURL,url);
 				}
 			}
 			return downloadCdn;
 		} catch {
 		// here will be anothers site scrap class
-			logger.error('link is not valid');
+			inDevMode(() => logger.error('link is not valid'));
 			return downloadCdn;
+		}
+	};
+
+	/**
+	 *
+	 * if DRC url can't retrive then that is the alternate way to get DDL url
+	 *
+	 * @param driveSeedURL
+	 * @param domain
+	 * @returns {Promise<string>}
+	 */
+	private getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<string> => {
+		try{
+
+			// get dirveseed home page html
+			const dshp = await fetchHtml(driveSeedURL);
+
+			// load cheerio resolved page html
+			let $ = load(dshp);
+
+			// get domain name from this params
+			const { origin } = domain;
+
+			// direct download server page html
+			const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
+
+			// update $ cheerio load previous html to ddlp resolved html
+			$ = load(ddlp);
+
+			// select direct download server page download button 1
+			const link = $('a:contains("Download")')[0].attribs.href;
+			// link header status
+			const linkActiveSts = await getURLStatus(link);
+
+			!linkActiveSts && inDevMode(() => logger.warn('DDL link is not active'));
+
+			return linkActiveSts ? link : '';
+
+		} catch (err:any) {
+			logError(err);
+			return '';
 		}
 	};
 
