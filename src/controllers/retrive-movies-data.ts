@@ -51,7 +51,7 @@ export const getMovieById = routeHandler(async (req,res) => {
 		const info = await useDb(async (collection) => {
 			const val = await collection.findOne(dbFilter);
 			return val;
-		});
+		},true);
 
 		// store response value
 		let downloadUrlArr:ResPostIdTuple = [...postIdDefultVal];

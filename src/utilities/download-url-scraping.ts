@@ -6,6 +6,7 @@ import { URL } from 'url';
 import nodeFetch from 'node-fetch';
 import { useDb } from '@app';
 import logger from './color-logger';
+import inDevMode from './development-mode';
 
 export const postIdDefultVal:ResPostIdTuple = ['', '', ''];
 
@@ -365,6 +366,8 @@ export class GenerateLink extends MoviePageScrape {
 				const linkSts = checkDLUrl(await getURLStatus(matches[1]));
 				if(linkSts) {
 					downloadCdn = matches[1];
+				} else {
+					inDevMode(() => logger.warn('valid link is not founded'));
 				}
 			}
 			return downloadCdn;

@@ -33,7 +33,7 @@ class App {
 	/**
 	 * method for use db instance
 	 */
-	public useDb: (cb:UseDBArg) => Promise<any>;
+	public useDb: (cb:UseDBArg,closeBool?:boolean) => Promise<any>;
 
 	/**
 	 * The Routes instance for managing routes.

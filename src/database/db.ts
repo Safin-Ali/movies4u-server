@@ -13,8 +13,15 @@ export class InitDB {
 		this.dbInstance = new MongoClient(db_uri!);
 	}
 
-	useDb = async (callB:UseDBArg):Promise<any> => {
+	/**
+	 *
+	 * @param {UseDBArg} callB  - a callback function execute after connection successfull.
+	 * @param {boolean} close - waiting boolen if true then  connection will closed after resolve
+	 * @returns {any}
+	 */
+	useDb = async (callB:UseDBArg,close:boolean | void):Promise<any> => {
 		try {
+
 			// Connect to the MongoDB server
 			await this.dbInstance.connect();
 
@@ -26,14 +33,15 @@ export class InitDB {
 
 			// Perform operations using the db object
 			const data = await callB(collection);
+
+			if(close) {
+				await this.dbInstance.close();
+				logger.process('Server Closed');
+			}
 			return data;
 
 		} catch (err: any) {
 			logError(err);
-		} finally {
-			// Close the connection
-			await this.dbInstance.close();
-			logger.process('Server Closed');
 		}
 	};
 }
