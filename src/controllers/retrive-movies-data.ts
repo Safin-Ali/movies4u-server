@@ -1,7 +1,10 @@
 import { useDb } from '@app';
 import { ResPostIdTuple } from '@custom-types/types';
-import { fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
+import logger from '@utilities/color-logger';
+import { fetchTMDB, getURLStatus, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
+import inDevMode from '@utilities/development-mode';
 import { GenerateLink, postIdDefultVal } from '@utilities/download-url-scraping';
+import nodeFetch from 'node-fetch';
 
 /**
  * Retrieves a list of movies from The Movie Database (TMDB) based on a query.
@@ -61,6 +64,7 @@ export const getMovieById = routeHandler(async (req,res) => {
 				postId
 			}).getUrl();
 			downloadUrlArr = res;
+
 			await useDb(async(cl) => {
 				await cl.updateOne(dbFilter,{
 					'$set':{
@@ -76,11 +80,19 @@ export const getMovieById = routeHandler(async (req,res) => {
 		 */
 		if(!info) {
 			await callGL();
-		}
-		else if (info.postId.length === 3) {
-			await callGL(info.postId);
 		} else {
-			downloadUrlArr = info.driveSeedUrl;
+			// check link is active or not
+			const linkStatus = await getURLStatus(info.tempLink[0]);
+
+			// scrap again if link is not valid and save and return update link
+			if(!linkStatus) {
+				inDevMode(() => logger.warn('link is not valid'));
+				await callGL(info.postId);
+			}
+
+			// if link already active then update to downloadUrl
+			downloadUrlArr = info.tempLink;
+
 		}
 
 		// Sends a successful response with movie details and download URL.
