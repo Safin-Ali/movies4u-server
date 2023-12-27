@@ -1,6 +1,6 @@
 import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DriveSeedDRCRes } from '@custom-types/types';
 import { load } from 'cheerio';
-import { checkDlUrl, extractDriveSeedKey, fetchHtml, logError, userAgent } from './common-utilities';
+import { checkDLUrl, extractDriveSeedKey, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { URL } from 'url';
 import nodeFetch from 'node-fetch';
@@ -362,14 +362,10 @@ export class GenerateLink extends MoviePageScrape {
 			if (matches && matches.length > 1) {
 
 				// link status active or not
-				checkDlUrl((await nodeFetch(matches[1],{
-					method:'HEAD',
-					headers:{
-						'User-Agent':userAgent
-					}
-				})).status);
-
-				downloadCdn = matches[1];
+				const linkSts = checkDLUrl(await getURLStatus(matches[1]));
+				if(linkSts) {
+					downloadCdn = matches[1];
+				}
 			}
 			return downloadCdn;
 		} catch {
