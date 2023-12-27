@@ -53,7 +53,9 @@ web_modules/
 
 # ignore build .js files
 /src/**/*.ts
-
+README.md
+.eslintrc.js
+tsconfig.json
 # Optional eslint cache
 .eslintcache
 
