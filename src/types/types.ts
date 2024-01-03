@@ -11,15 +11,6 @@ export type RouteHandlerRequestType<Req> = Req extends undefined ? Request : Req
 
 export type RouteHandlerType<Return, CustomReq> = (req: RouteHandlerRequestType<CustomReq>, res: Response) => RouteHandlerReturnType<Return>;
 
-export type ResolutionLiteral = '480p' | '720p' | '1080p';
-
-/**
- * Movie Resolution `Post ID`
- * or
- * A `Tuple` of `DownloadUrl`
- */
-export type ResPostIdTuple = [string, string, string];
-
 export interface DownloadInfoParams {
 	title: string,
 	year: string,
@@ -66,10 +57,6 @@ export interface MovieDLScrapQuery {
 
 export interface MovieDLServer {
 	fastS:string,
-	gDrive:string,
-	others:string
 }
-
-export type MovieDLServerReturn  = [MovieDLServer,MovieDLServer,MovieDLServer]
 
 export type CustomRouter = [string, createRouter.Router];
