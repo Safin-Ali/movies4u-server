@@ -2,7 +2,7 @@ import { useDb } from '@app';
 import { ResPostIdTuple } from '@custom-types/types';
 import { InitDB } from '@db';
 import logger from '@utilities/color-logger';
-import { checkDLUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError} from '@utilities/common-utilities';
+import { checkDLUrl, encryptUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError} from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
 import { GenerateLink, postIdDefultVal } from '@utilities/download-url-scraping';
 import nodeFetch from 'node-fetch';
@@ -86,9 +86,6 @@ export const getMovieById = routeHandler(async (req,res) => {
 				const driveSeedPathSts = checkDLUrl(await getURLStatus(info.driveSeedUrl[0]));
 				if(driveSeedPathSts) {
 
-					console.log('comed');
-
-
 					// get new actived link promises array
 					const newActLink: ResPostIdTuple= await Promise.all((info.driveSeedUrl as any[]).map(async (dsPath) => {
 						const res = await GenerateLink.getDirectLinkDRC(dsPath);
@@ -108,11 +105,15 @@ export const getMovieById = routeHandler(async (req,res) => {
 
 		}
 
+		const encrypt_urls = downloadUrlArr.map(url => {
+			return !url ? url : encryptUrl(url);
+		})
+
 		// Sends a successful response with movie details and download URL.
 
 		res.status(200).send({
 			movieDetails:details,
-			downloadUrl:downloadUrlArr
+			downloadUrl:encryptUrl
 		});
 	} catch (err:any) {
 		logError(err);
