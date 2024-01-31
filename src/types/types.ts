@@ -55,6 +55,18 @@ export interface MovieDLScrapQuery {
 	year:string
 }
 
+export interface GetUrlStatus {
+	status:number,
+	size:string
+}
+
+export interface DirectLinkResponse {
+	link:string,
+	size:string
+}
+
+export type FinalResponseTuple = [DirectLinkResponse,DirectLinkResponse,DirectLinkResponse]
+
 export interface MovieDLServer {
 	fastS:string,
 }

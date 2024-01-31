@@ -1,5 +1,5 @@
 import { encryption_iv, encryption_key, tmdb_api } from '@config/env-var';
-import { RouteHandlerType } from '@custom-types/types';
+import { GetUrlStatus, RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
 import { Response as ResponseX } from 'express';
 import inDevMode from './development-mode';
@@ -46,9 +46,9 @@ export const checkDLUrl = (status: number): boolean => {
  *
  * @param url
  * @param option
- * @returns
+ * @returns {{status:number,size:number}}
  */
-export const getURLStatus = async (url:string,option?:any):Promise<number> => {
+export const getURLStatus = async (url:string,option?:any):Promise<GetUrlStatus> => {
 	try{
 		if(!option) {
 			option = {
@@ -57,15 +57,21 @@ export const getURLStatus = async (url:string,option?:any):Promise<number> => {
 				}
 			};
 		}
-		const httpSts = (await nodeFetch(url,{
+		const response = await nodeFetch(url,{
 			...option,
 			method:'HEAD',
-		})).status;
+		});
 
-		return httpSts;
+		return {
+			status:response.status,
+			size: response.headers.get('Content-Length')!
+		};
 	} catch (err:any) {
 		logError(err);
-		return 401;
+		return {
+			status:401,
+			size:'0'
+		};
 	}
 };
 

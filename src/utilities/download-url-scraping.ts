@@ -1,4 +1,4 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DriveSeedDRCRes } from '@custom-types/types';
+import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DriveSeedDRCRes, DirectLinkResponse, FinalResponseTuple } from '@custom-types/types';
 import { load } from 'cheerio';
 import { checkDLUrl, extractDriveSeedKey, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
@@ -9,6 +9,14 @@ import logger from './color-logger';
 import inDevMode from './development-mode';
 
 export const postIdDefultVal:ResPostIdTuple = ['', '', ''];
+
+
+const empty_downloadUrl = {
+	link: '',
+	size: '0'
+}
+
+export const empty_downloadUrlTuple:FinalResponseTuple = [empty_downloadUrl, empty_downloadUrl, empty_downloadUrl];
 
 /**
  * this class for scrape the movie actual page by `seraching`
@@ -117,7 +125,7 @@ class MoviePageScrape {
 
 export class GenerateLink extends MoviePageScrape {
 
-	private downloadTempUrl: Promise<ResPostIdTuple>;
+	private downloadTempUrl: Promise<FinalResponseTuple>;
 
 	constructor({ title, year, postId }: DownloadInfoParams) {
 
@@ -137,7 +145,7 @@ export class GenerateLink extends MoviePageScrape {
 						year,
 						postId:this.postIdArr,
 						driveSeedUrl: [...postIdDefultVal],
-						tempLink:[...postIdDefultVal]
+						tempLink:empty_downloadUrlTuple
 					});
 				});
 			} else {
@@ -169,13 +177,13 @@ export class GenerateLink extends MoviePageScrape {
 				});
 			});
 
-			// iterate all driveseed filoe path url and get temp download cdn url
+			// iterate all driveseed file path url and get temp download cdn url
 			const dsDRCLink = driveSeedUrl.map(async (s) => {
 				const resUrl = await GenerateLink.getDirectLinkDRC(s);
 				return resUrl;
 			});
 			// set allResDlLinkP resolved promised value
-			return Promise.all(dsDRCLink) as Promise<ResPostIdTuple>;
+			return Promise.all(dsDRCLink) as Promise<FinalResponseTuple>;
 		})();
 	}
 
@@ -313,10 +321,13 @@ export class GenerateLink extends MoviePageScrape {
 	* scrap driveseed direct download button and retrieve link.
 	* @param {string} driveSeed - driveseed current movie path url.
 	*/
-	static getDirectLinkDRC = async (driveSeedURL: string): Promise<string> => {
+	static getDirectLinkDRC = async (driveSeedURL: string): Promise<DirectLinkResponse> => {
 
 		// store valid download url
-		let downloadCdn = '';
+		let downloadCdn:DirectLinkResponse = {
+			link:'',
+			size:'0'
+		};
 
 		try{
 		// get dirveseed home page
@@ -362,10 +373,16 @@ export class GenerateLink extends MoviePageScrape {
 
 			if (matches && matches.length > 1) {
 
+				// get founded url video total size and status
+				const drcLinkStatus = await getURLStatus(matches[1]);
+
 				// link status active or not
-				const linkSts = checkDLUrl(await getURLStatus(matches[1]));
+				const linkSts = checkDLUrl(drcLinkStatus.status);
 				if(linkSts) {
-					downloadCdn = matches[1];
+					downloadCdn = {
+						link:matches[1],
+						size:drcLinkStatus.size
+					};
 				} else {
 					inDevMode(() => logger.warn('DRC valid link is not founded'));
 					downloadCdn = await this.getDirectLinkDDL(driveSeedURL,url);
@@ -387,7 +404,7 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param domain
 	 * @returns {Promise<string>}
 	 */
-	static getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<string> => {
+	static getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<DirectLinkResponse> => {
 		try{
 
 			// get dirveseed home page html
@@ -407,20 +424,30 @@ export class GenerateLink extends MoviePageScrape {
 
 			// select direct download server page download button 1
 			const link = $('a:contains("Download")')[0].attribs.href;
+
+							// get founded url video total size and status
+							const ddlLinkStatus = await getURLStatus(link);
+
 			// link header status
-			const linkActiveSts = checkDLUrl(await getURLStatus(link));
+			const linkActiveSts = checkDLUrl(ddlLinkStatus.status);
 
 			!linkActiveSts && inDevMode(() => logger.warn('DDL link is not active'));
 
-			return linkActiveSts ? link : '';
+			return {
+				link:linkActiveSts ? link : '',
+				size:ddlLinkStatus.size
+			};
 
 		} catch (err:any) {
 			logError(err);
-			return '';
+			return {
+				link:'',
+				size:'0'
+			};
 		}
 	};
 
-	// to get download link tuple promises
+	// to get download link final object promises
 	public getUrl(): typeof this.downloadTempUrl {
 		return this.downloadTempUrl;
 	}

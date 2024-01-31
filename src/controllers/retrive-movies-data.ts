@@ -1,10 +1,10 @@
 import { useDb } from '@app';
-import { ResPostIdTuple } from '@custom-types/types';
+import { FinalResponseTuple, ResPostIdTuple } from '@custom-types/types';
 import { InitDB } from '@db';
 import logger from '@utilities/color-logger';
-import { checkDLUrl, encryptUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError} from '@utilities/common-utilities';
+import { checkDLUrl, encryptUrl, fetchTMDB, getURLStatus, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
-import { GenerateLink, postIdDefultVal } from '@utilities/download-url-scraping';
+import { GenerateLink, empty_downloadUrlTuple } from '@utilities/download-url-scraping';
 import nodeFetch from 'node-fetch';
 
 /**
@@ -15,7 +15,7 @@ export const getMovies = routeHandler(async (req, res) => {
 	try {
 		const moviesList = await fetchTMDB(req.query.q as string);
 		res.status(200).send(moviesList);
-	} catch (err:any) {
+	} catch (err: any) {
 		logError(err);
 		sendServerError(res);
 	}
@@ -31,9 +31,9 @@ export const getMovies = routeHandler(async (req, res) => {
  * @returns {Promise<void>} - Resolves when the response is sent.
  * @throws {Error} - Throws an error if there is an issue with fetching data or processing the request.
  */
-export const getMovieById = routeHandler(async (req,res) => {
+export const getMovieById = routeHandler(async (req, res) => {
 
-	try{
+	try {
 		// Fetches details of a movie from TMDB.
 		const details = await fetchTMDB(req.query.q as string);
 
@@ -52,48 +52,52 @@ export const getMovieById = routeHandler(async (req,res) => {
 		const info = await useDb(async (collection) => {
 			const val = await collection.findOne(dbFilter);
 			return val;
-		},true);
+		}, true);
 
 		// store response value
-		let downloadUrlArr:ResPostIdTuple = [...postIdDefultVal];
+		let downloadUrlArr: FinalResponseTuple = empty_downloadUrlTuple;
 
-		// to call GenerateLink class and update tempLink in db
-		const callGL = async (postId?:ResPostIdTuple) => {
-			const res = await new GenerateLink({
+		// a function to do call GenerateLink class and update tempLink in db
+		const callGL = async (postId?: ResPostIdTuple) => {
+			const res = (await new GenerateLink({
 				title,
 				year,
 				postId
-			}).getUrl();
+			}).getUrl());
 			downloadUrlArr = res;
 
-			InitDB.updateTempLink(res,dbFilter);
+			InitDB.updateTempLink(res, dbFilter);
 		};
 
 		/**
 		 * if own databse not have any info about current movie then it will be try generate download link and update and insert current movie all info
 		 * else set retrieved download url
 		 */
-		if(!info) {
+		if (!info) {
 			await callGL();
 		} else {
+
+			// current link status
+			const tempLinkSts = await getURLStatus(info.tempLink[0]);
+
 			// check link is active or not
-			const linkStatus = checkDLUrl(await getURLStatus(info.tempLink[0]));
+			const linkStatus = checkDLUrl(tempLinkSts.status);
 
 			// scrap again if link is not valid and save and return update link
-			if(!linkStatus) {
+			if (!linkStatus) {
 				inDevMode(() => logger.warn('links are not valid'));
 				// check driveSeed path link active or not
-				const driveSeedPathSts = checkDLUrl(await getURLStatus(info.driveSeedUrl[0]));
-				if(driveSeedPathSts) {
+				const driveSeedPathSts = checkDLUrl((await getURLStatus(info.driveSeedUrl[0])).status);
+				if (driveSeedPathSts) {
 
 					// get new actived link promises array
-					const newActLink: ResPostIdTuple= await Promise.all((info.driveSeedUrl as any[]).map(async (dsPath) => {
+					const newActLink: FinalResponseTuple = await Promise.all((info.driveSeedUrl as any[]).map(async (dsPath) => {
 						const res = await GenerateLink.getDirectLinkDRC(dsPath);
 						return res;
-					})) as ResPostIdTuple;
-					console.log(newActLink);
-					InitDB.updateTempLink(newActLink,dbFilter);
-					downloadUrlArr = newActLink as ResPostIdTuple;
+					})) as FinalResponseTuple;
+
+					InitDB.updateTempLink(newActLink, dbFilter);
+					downloadUrlArr = newActLink as FinalResponseTuple;
 
 				} else {
 					await callGL(info.postId);
@@ -106,16 +110,20 @@ export const getMovieById = routeHandler(async (req,res) => {
 		}
 
 		const encrypt_urls = downloadUrlArr.map(url => {
-			return !url ? url : encryptUrl(url);
+			return {
+				...url,
+				link:!url.link ? url.link : encryptUrl(url.link)
+			}
 		})
+
 
 		// Sends a successful response with movie details and download URL.
 
 		res.status(200).send({
-			movieDetails:details,
-			downloadUrl:encryptUrl
+			movieDetails: details,
+			downloadUrl: encrypt_urls
 		});
-	} catch (err:any) {
+	} catch (err: any) {
 		logError(err);
 		sendServerError(res);
 	}

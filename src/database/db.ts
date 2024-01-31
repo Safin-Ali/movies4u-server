@@ -1,6 +1,6 @@
 import { useDb } from '@app';
 import { dbName, db_uri } from '@config/env-var';
-import { ResPostIdTuple, UseDBArg } from '@custom-types/types';
+import { FinalResponseTuple, ResPostIdTuple, UseDBArg } from '@custom-types/types';
 import logger from '@utilities/color-logger';
 import { logError } from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
@@ -50,7 +50,7 @@ export class InitDB {
 	 * update tempLink in db
 	 */
 
-	static updateTempLink = async (tempLinkArr:ResPostIdTuple,{title,year}:{title:string,year:string}):Promise<void> => {
+	static updateTempLink = async (tempLinkArr:FinalResponseTuple,{title,year}:{title:string,year:string}):Promise<void> => {
 		try {
 		// query filter for mongodb
 			const dbFilter = {
