@@ -1,5 +1,5 @@
 import { encryption_iv, encryption_key, tmdb_api } from '@config/env-var';
-import { GetUrlStatus, RouteHandlerType } from '@custom-types/types';
+import { CheckDLUrlArg, GetUrlStatus, RouteHandlerType } from '@custom-types/types';
 import logger from './color-logger';
 import { Response as ResponseX } from 'express';
 import inDevMode from './development-mode';
@@ -35,9 +35,9 @@ export const logError = (err: Error): void => inDevMode(() => {
 });
 
 // throw error if the download link is not active or redirect 301 or 302 status found
-export const checkDLUrl = (status: number): boolean => {
-	if (status === 301 || status === 302 || status === 404 || status !== 200) return false;
-	return true;
+export const checkDLUrl = (arg:CheckDLUrlArg): boolean => {
+	if (arg.status === 200 && arg.content_type === 'video/x-matroska' || arg.content_type === 'video/mp4') return true;
+	return false;
 };
 
 /**
@@ -64,13 +64,15 @@ export const getURLStatus = async (url:string,option?:any):Promise<GetUrlStatus>
 
 		return {
 			status:response.status,
-			size: response.headers.get('Content-Length')!
+			size: response.headers.get('Content-Length')!,
+			content_type:response.headers.get('Content-Type')!,
 		};
 	} catch (err:any) {
 		logError(err);
 		return {
 			status:401,
-			size:'0'
+			size:'0',
+			content_type:''
 		};
 	}
 };
