@@ -131,6 +131,7 @@ class VerifyMiddleWeb {
 
 	public static async verifyPage(server_path: string): Promise<string> {
 		let driveSeedPath = '';
+
 		try {
 
 			// Step 1:
@@ -335,6 +336,7 @@ class RetriveDirectLink {
 
 			// load cheerio resolved page html
 			let $ = load(dshp);
+
 
 			// get domain name from this params
 			const { origin } = new URL(driveSeedURL);

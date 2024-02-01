@@ -44,9 +44,9 @@ export const getMovieById = routeHandler(async (req, res) => {
 				link:!url.link ? url.link : encryptUrl(url.link)
 			};
 		});
-    
+
 		// Sends a successful response with movie details and download URL.
-    
+
 		res.status(200).send({
 			movieDetails: details,
 			downloadUrl: encrypt_urls
