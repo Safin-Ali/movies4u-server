@@ -1,46 +1,34 @@
-import { ResPostIdTuple, MovieDLScrapQuery, ResolutionLiteral, DownloadInfoParams, MovieDLServerReturn, MovieDLServer, DriveSeedDRCRes, DirectLinkResponse, FinalResponseTuple } from '@custom-types/types';
-import { load } from 'cheerio';
+import { DirectLinkResponse, DriveSeedDRCRes, MoviePostIdArg, GenerateLinkArg, FinalResponseTuple, MovieDLScrapQuery, MovieLinkInfoDB } from '@custom-types/types';
 import { checkDLUrl, extractDriveSeedKey, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
-import { URL } from 'url';
+import { load } from 'cheerio';
 import nodeFetch from 'node-fetch';
-import { useDb } from '@app';
 import logger from './color-logger';
 import inDevMode from './development-mode';
+import { InitDB } from '@db';
+import { useDb } from '@app';
 
-export const postIdDefultVal:ResPostIdTuple = ['', '', ''];
-
+const resoluationTuple = ['480p', '720p', '1080p'];
 
 const empty_downloadUrl = {
 	link: '',
 	size: '0'
-}
+};
 
-export const empty_downloadUrlTuple:FinalResponseTuple = [empty_downloadUrl, empty_downloadUrl, empty_downloadUrl];
+export const empty_downloadUrlTuple: FinalResponseTuple = [empty_downloadUrl, empty_downloadUrl, empty_downloadUrl];
 
-/**
- * this class for scrape the movie actual page by `seraching`
- * where the movie each `480p` `720p` `1080p` url stored and
- * finally store `Post Id` array
- */
-class MoviePageScrape {
-	public postIdArr: ResPostIdTuple = [...postIdDefultVal];
+class MoviePostId {
+	public static async getPostId(query: MoviePostIdArg): Promise<string> {
+		let postId = '';
 
-	/**
-	 *
-	 * search movies by title and year and return matched movie post id based on resolulation
-	 *
-	 * if not found then return empty `array`.
-	 *
-	 * @param {MovieDLScrapQuery} arg -  title and year for find movie post id.
-	 * @returns {ResPostIdTuple} `array of post id`.
-	 */
+		// HQ title postId
+		let hq_postId = '';
 
-	public async getPostId(arg: MovieDLScrapQuery): Promise<ResPostIdTuple> {
-		// movie res visiting page post id
-		const postIdArr: ResPostIdTuple = [...postIdDefultVal];
+		//10Bit or any audio
+		let bit_postId = '';
+
 		try {
-			const html = await fetchHtml(`${movies_db_url}?s=${arg.title}`);
+			const html = await fetchHtml(`${movies_db_url}?s=${query.title}`);
 
 			// Loads HTML content to create a cheerio instance.
 			const $ = load(html);
@@ -52,8 +40,7 @@ class MoviePageScrape {
 			const matchesMovies = $('body #primary #post-wrapper .post-wrapper-hentry article');
 
 			// if no one movies found then send empty string
-			if (!matchesMovies.length) return postIdArr;
-
+			if (!matchesMovies.length) return postId;
 
 			matchesMovies.each((_, elm) => {
 				// movie post id
@@ -62,179 +49,89 @@ class MoviePageScrape {
 					 */
 				const moviePostId = elm.attribs.id.split('-')[1];
 
-				// // the current movie element header
+				// the current movie element header or extract title
 				const scrapedTitle = $(elm).find('header.entry-header a').text().toLowerCase();
 
-				if (scrapedTitle.includes(arg.title) && scrapedTitle.includes(arg.year)) {
+				if (
+					scrapedTitle.includes(query.title)
+					&&
+					scrapedTitle.includes(query.year)
+					&&
+					scrapedTitle.startsWith(query.title)
+					&&
+					scrapedTitle.includes(resoluationTuple[query.resolutionIndex])
+				) {
+					if(scrapedTitle.includes('hq')) {
 
-					/**
-						 * Stores download URLs.
-						 * The array order is `important` for `resolutions` `['480p', '720p', '1080p']`.
-						 * @type {string}
-						*/
-					switch (this.checkResolution(scrapedTitle)) {
+						// that ternary operator used for tricks to add always latest postId
 
-					case '480p':
-						postIdArr[0] = moviePostId;
-						break;
-					case '720p':
-						postIdArr[1] = moviePostId;
-						break;
-					default:
-						postIdArr[2] = moviePostId;
-						break;
+						hq_postId = hq_postId ? hq_postId : moviePostId;
+					}
+					else if(scrapedTitle.includes('10bit') || scrapedTitle.includes('bit')) {
+
+						// that ternary operator used for tricks to add always latest postId
+						bit_postId = bit_postId ? bit_postId : moviePostId;
+					}
+					else {
+
+						// that ternary operator used for tricks to add always latest postId
+
+						postId = postId ? postId : moviePostId;
 					}
 				}
 			});
-
-			this.postIdArr = postIdArr;
-
-			return postIdArr;
+			return postId ? postId : bit_postId ? bit_postId : hq_postId;
 		} catch (err: any) {
 			logError(err);
-			return postIdArr;
+			return postId;
 		}
-	}
-
-	/**
-	 * checking resolution types are `480p`, `720p`, `1080p`.
-	 *
-	 * @param {string} title - title for checking included resolution or not
-	 * @returns {ResolutionLiteral} - An string which would be `480p` || `720p` || `1080p`.
-	 */
-
-	private checkResolution(title: string): ResolutionLiteral {
-
-		/**
-			 * Resolution types are '480p', '720p', '1080p'.
-			* Always sets the latest or last matched resolution URL.
-		*/
-
-		// Sets the download URL based on resolution type.
-		if (title.includes('480p')) return '480p';
-		if (title.includes('720p')) return '720p';
-		return '1080p';
-
 	}
 }
 
-/**
- * this class scrape and bypass human
- * verification and return actual movie link
- */
+class FileHostedServers {
 
-export class GenerateLink extends MoviePageScrape {
-
-	private downloadTempUrl: Promise<FinalResponseTuple>;
-
-	constructor({ title, year, postId }: DownloadInfoParams) {
-
-		// call the WebScrap class
-		super();
-
-		// automatic set driveseed download link tuple promise
-		this.downloadTempUrl = (async () => {
-
-			if (!postId || !postId.length) {
-				await this.getPostId({ title, year });
-
-				// save current movie scrapped post ID with blank download url
-				await useDb(async (cl) => {
-					await cl.insertOne({
-						title,
-						year,
-						postId:this.postIdArr,
-						driveSeedUrl: [...postIdDefultVal],
-						tempLink:empty_downloadUrlTuple
-					});
-				});
-			} else {
-				this.postIdArr = postId;
-			}
-
-			// get fastS server links array for current movie each resolution
-			const serverArr = await this.getServerUrl();
-
-			// for all video all resolution download link promise
-			const allResDlLinkP = serverArr.map(async (s) => {
-				try {
-					if (!s.fastS) return '';
-					const driveSeedPath = await this.verifyPage(s);
-					return driveSeedPath;
-				} catch (err: any) {
-					logError(err);
-					return '';
-				}
-			});
-
-			const driveSeedUrl = await Promise.all(allResDlLinkP);
-
-			await useDb(async(cl) => {
-				await cl.updateOne({title,year},{
-					'$set':{
-						'driveSeedUrl':driveSeedUrl
-					}
-				});
-			});
-
-			// iterate all driveseed file path url and get temp download cdn url
-			const dsDRCLink = driveSeedUrl.map(async (s) => {
-				const resUrl = await GenerateLink.getDirectLinkDRC(s);
-				return resUrl;
-			});
-			// set allResDlLinkP resolved promised value
-			return Promise.all(dsDRCLink) as Promise<FinalResponseTuple>;
-		})();
-	}
-
-	/**
-	 * get the serverUrl for 480p, 720p, 1080p `resolution`.
-	 * `Note`: the return array order same as resolution tuple order.
-	 * @return {MovieDLServerReturn} - array tuple with three type url object.
-	 */
-
-	private async getServerUrl(): Promise<MovieDLServerReturn> {
+	public static async getServerUrl(postId: string): Promise<string> {
 
 		/**
-		 * get every post id server source page `promise`
+		 * get post id server source page
 		 */
-		const resPromiseIns = this.postIdArr.map(async (id) => {
-			const res = await fetchHtml(`${movies_db_url}/archives/${id}`, {
-				method: 'GET',
-				redirect: 'follow',
-				headers: {
-					'Content-Type': 'text/html',
-					'User-Agent': userAgent
-				},
-			});
-			return res;
+		const res: string = await fetchHtml(`${movies_db_url}/archives/${postId}`, {
+			method: 'GET',
+			redirect: 'follow',
+			headers: {
+				'Content-Type': 'text/html',
+				'User-Agent': userAgent
+			},
 		});
 
-		// resolve server source page `promise`
-		const resSerListP = await Promise.all(resPromiseIns);
+		// retrieve current resoluation `fastServer`, `googleDrive`, `othersLink` url
 
-		// iterate every page and retrieve current resoluation `fastServer`, `googleDrive`, `othersLink` url
-		const resSerList = resSerListP.map((elm): MovieDLServer => {
-			const $ = load(elm);
-			return {
+		const $ = load(res);
 
-				fastS: $('a.maxbutton')[0].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || ''
-			};
+		/**
+		 * currently only retrieve fastServer only.
+		 * that's why we only created fastOnly veriable
+		 * if iwant to each servers url then just make a loop
+		 * finaly we get on just path for verifyPafeUrl
+		 */
+		const fastSOnly = $('a.maxbutton')[0].attribs.href.replace(`${verifyPageUrl}?sid=`, '') || '';
 
-		});
-
-		return resSerList as MovieDLServerReturn;
+		return fastSOnly;
 	}
+}
 
+class VerifyMiddleWeb {
 	/**
 	 *
 	 * verify middle position third party site
 	 *
-	 * @param {MovieDLServer} serverObj
+	 * @param {string} server_path
 	 * @returns
 	 */
 
-	private async verifyPage(serverObj: MovieDLServer): Promise<string> {
+	public static async verifyPage(server_path: string): Promise<string> {
+		let driveSeedPath = '';
+
 		try {
 
 			// Step 1:
@@ -245,7 +142,7 @@ export class GenerateLink extends MoviePageScrape {
 					'Content-Type': 'application/x-www-form-urlencoded',
 					'User-Agent': userAgent
 				},
-				body: `_wp_http=${serverObj.fastS}`,
+				body: `_wp_http=${server_path}`,
 			}));
 
 			//cheerio load varified step 1 page content
@@ -285,7 +182,7 @@ export class GenerateLink extends MoviePageScrape {
 			// Use the regular expression to find the first argument value of s_343 function
 			const matches = verifiedS2.match(pattern);
 
-			if (!matches || !matches[1]) return '';
+			if (!matches || !matches[1]) return driveSeedPath;
 
 			// retrieve verified redirect page html
 			const redirectPage = await fetchHtml(`${verifyPageUrl}?go=${matches[1]}`, {
@@ -309,28 +206,47 @@ export class GenerateLink extends MoviePageScrape {
 			const verifiedDriveSeed = await fetchHtml(odmRedUrl.redUrl);
 
 			// finally extract driveseed path where the video is stored with super fast link
-			return `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
+			driveSeedPath = `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
+			return driveSeedPath;
 
 		} catch (err: any) {
 			logError(err);
-			return '';
+			return driveSeedPath;
 		}
+	}
+}
+
+class RetriveDirectLink {
+
+	public async findUrl(driveSeedUrl: string) {
+
+		// actual download url
+		/**
+		 * first try to direct download button
+		 * if not link then try to direct download link
+		 */
+		let link = await this.getDirectLinkDRC(driveSeedUrl);
+
+		if (link.link) return link;
+
+		link = await this.getDirectLinkDDL(driveSeedUrl);
+		return link;
 	}
 
 	/**
 	* scrap driveseed direct download button and retrieve link.
-	* @param {string} driveSeed - driveseed current movie path url.
+	* @param {string} driveSeedURL - driveseed current movie path url.
 	*/
-	static getDirectLinkDRC = async (driveSeedURL: string): Promise<DirectLinkResponse> => {
+	private async getDirectLinkDRC(driveSeedURL: string): Promise<DirectLinkResponse> {
 
 		// store valid download url
-		let downloadCdn:DirectLinkResponse = {
-			link:'',
-			size:'0'
+		let downloadCdn: DirectLinkResponse = {
+			link: '',
+			size: '0'
 		};
 
-		try{
-		// get dirveseed home page
+		try {
+			// get dirveseed home page
 			const dshp = await nodeFetch(driveSeedURL, {
 				headers: {
 					'User-Agent': userAgent
@@ -338,7 +254,7 @@ export class GenerateLink extends MoviePageScrape {
 			});
 
 			// get domain name from this params
-			const url = new URL(driveSeedURL);
+			const { href, host } = new URL(driveSeedURL);
 
 			// temp cookie for driveseed file direct download button
 			const dsCookie = dshp.headers.get('Set-Cookie')?.split(';')[0];
@@ -352,17 +268,17 @@ export class GenerateLink extends MoviePageScrape {
 			formData.append('action_token', '');
 
 			// get driveseed direct download response json
-			const dsddrResInfo: DriveSeedDRCRes = await (await nodeFetch(url.href, {
+			const dsddrResInfo: DriveSeedDRCRes = await (await nodeFetch(href, {
 				method: 'POST',
 				headers: {
 					'Cookie': dsCookie!,
 					'User-Agent': userAgent,
-					'x-token': url.host
+					'x-token': host
 				},
 				body: formData
 			})).json();
 
-			if (dsddrResInfo.error && !dsddrResInfo.url) throw Error();
+			if (dsddrResInfo.error && !dsddrResInfo.url) return downloadCdn;
 
 			// driveseed direct download redirected page html
 			const finalDRCPage = await fetchHtml(dsddrResInfo.url);
@@ -374,27 +290,28 @@ export class GenerateLink extends MoviePageScrape {
 			if (matches && matches.length > 1) {
 
 				// get founded url video total size and status
-				const drcLinkStatus = await getURLStatus(matches[1]);
+				const { size, status, content_type } = await getURLStatus(matches[1]);
 
 				// link status active or not
-				const linkSts = checkDLUrl(drcLinkStatus.status);
-				if(linkSts) {
+				const linkSts = checkDLUrl({ status, content_type });
+
+				if (linkSts) {
 					downloadCdn = {
-						link:matches[1],
-						size:drcLinkStatus.size
+						link: matches[1],
+						size: size
 					};
 				} else {
-					inDevMode(() => logger.warn('DRC valid link is not founded'));
-					downloadCdn = await this.getDirectLinkDDL(driveSeedURL,url);
+					inDevMode(() => logger.error('crash on DRC fetching '));
+					return downloadCdn;
 				}
 			}
 			return downloadCdn;
 		} catch {
-		// here will be anothers site scrap class
-			inDevMode(() => logger.error('link is not valid'));
+			// here will be anothers site scrap class
+			inDevMode(() => logger.error('DRC link is something wrong'));
 			return downloadCdn;
 		}
-	};
+	}
 
 	/**
 	 *
@@ -404,8 +321,15 @@ export class GenerateLink extends MoviePageScrape {
 	 * @param domain
 	 * @returns {Promise<string>}
 	 */
-	static getDirectLinkDDL = async (driveSeedURL:string,domain:URL):Promise<DirectLinkResponse> => {
-		try{
+	private async getDirectLinkDDL(driveSeedURL: string): Promise<DirectLinkResponse> {
+
+		// store valid download url
+		let downloadCdn: DirectLinkResponse = {
+			link: '',
+			size: '0'
+		};
+
+		try {
 
 			// get dirveseed home page html
 			const dshp = await fetchHtml(driveSeedURL);
@@ -413,8 +337,9 @@ export class GenerateLink extends MoviePageScrape {
 			// load cheerio resolved page html
 			let $ = load(dshp);
 
+
 			// get domain name from this params
-			const { origin } = domain;
+			const { origin } = new URL(driveSeedURL);
 
 			// direct download server page html
 			const ddlp = await fetchHtml(`${origin}${$('a:contains("Direct Links")')[0].attribs.href}`);
@@ -425,31 +350,211 @@ export class GenerateLink extends MoviePageScrape {
 			// select direct download server page download button 1
 			const link = $('a:contains("Download")')[0].attribs.href;
 
-							// get founded url video total size and status
-							const ddlLinkStatus = await getURLStatus(link);
+			// get founded url video total size and status
+			const { size, status, content_type } = await getURLStatus(link);
 
 			// link header status
-			const linkActiveSts = checkDLUrl(ddlLinkStatus.status);
+			const linkActiveSts = checkDLUrl({ content_type, status });
 
 			!linkActiveSts && inDevMode(() => logger.warn('DDL link is not active'));
 
-			return {
-				link:linkActiveSts ? link : '',
-				size:ddlLinkStatus.size
+			downloadCdn = {
+				link: linkActiveSts ? link : '',
+				size: size || '0'
 			};
 
+			return downloadCdn;
+
+		} catch (err: any) {
+			logError(err);
+			inDevMode(() => logger.error('crash on DDL fetching '));
+			return downloadCdn;
+		}
+	}
+}
+
+class GenerateLink {
+
+	public static async fromBegin(query: GenerateLinkArg) {
+		const movieLinkInfo: MovieLinkInfoDB = {
+			driveSeedUrl:['','',''],
+			title:query.title,
+			year:query.year,
+			postId:['','',''],
+			tempLink:[...empty_downloadUrlTuple],
+			lastUpdate:new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50),
+		};
+
+		for (let i = 1; i <= query.resolution; i++) {
+			const postId = await MoviePostId.getPostId({
+				title: query.title,
+				year: query.year,
+				resolutionIndex: i - 1
+			});
+
+			// store postId based on index in movieLinkInfo
+			movieLinkInfo.postId[i-1] = postId;
+
+			const fastS = await FileHostedServers.getServerUrl(postId);
+
+			const driveSeed = await VerifyMiddleWeb.verifyPage(fastS);
+
+			// store driveSeedPath based on index in movieLinkInfo
+			movieLinkInfo.driveSeedUrl[i-1] = driveSeed;
+
+			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
+
+			movieLinkInfo.tempLink[i - 1] = finalLink;
+		}
+
+		/**
+		 * fallback
+		 * when each response is empty then from here
+		 * you can scrap another site
+		 */
+
+		return movieLinkInfo;
+	}
+
+	public static async fromPostId(postId: string) {
+		try {
+			const fastS = await FileHostedServers.getServerUrl(postId);
+
+			const driveSeed = await VerifyMiddleWeb.verifyPage(fastS);
+
+			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
+
+			return finalLink;
 		} catch (err:any) {
 			logError(err);
-			return {
-				link:'',
-				size:'0'
-			};
+			return empty_downloadUrl;
 		}
-	};
+	}
 
-	// to get download link final object promises
-	public getUrl(): typeof this.downloadTempUrl {
-		return this.downloadTempUrl;
+	public static async fromDriveSeed(driveSeedPath: string) {
+		try {
+			const directLink: DirectLinkResponse = await new RetriveDirectLink().findUrl(driveSeedPath);
+			return directLink;
+		} catch (err: any) {
+			logError(err);
+			return empty_downloadUrl;
+		}
 	}
 
 }
+
+/**
+ *
+ * `A guide to how this function work`
+ *
+ * step 1 check this movie link previously stored or not
+ *
+ * @param {MovieDLScrapQuery} query
+ */
+
+export const movieLinkTuple = async (query: MovieDLScrapQuery):Promise<FinalResponseTuple> => {
+	const { title, year } = query;
+
+	let finalResVal: FinalResponseTuple = [...empty_downloadUrlTuple];
+
+	/*
+
+	step 1 check this movie link previously stored or not
+
+	store movie old link info by  using `title`, `years`
+
+	 */
+	const existInDB: MovieLinkInfoDB = await InitDB.findMovieLink({
+		title,
+		year
+	});
+
+	/*
+
+	1.if database has movie info and check last update date is today then return the current stored info
+
+	2.this is help for reduce unnecessery scrap or make new link
+
+	*/
+
+	if (existInDB && existInDB.lastUpdate > Date.now()) {
+		finalResVal = existInDB.tempLink;
+		return finalResVal;
+	}
+
+	/*
+
+	after last update not match cheching already stored tempLink all url
+
+	*/
+
+	if (existInDB && existInDB.lastUpdate <= Date.now()) {
+
+		/*
+		1. iterate and check link is valid or not
+
+		2. if link is valid then update finalResVal variable value based on index
+
+		3. if not valid then driveseed path and check driveseed path is actived or not
+
+		4. if driveed status 200 and content return type text/html then call GenerateLink.fromDriveSeed method else GenerateLink.fromPostId
+
+		5. then return and update database with finalResVal variable value
+
+		*/
+		for (let i = 0; i < existInDB.tempLink.length; i++) {
+
+
+			const { content_type, status } = await getURLStatus(existInDB.tempLink[i].link);
+
+			const sts = checkDLUrl({ content_type, status });
+
+			if (sts) {
+				finalResVal[i] = existInDB.tempLink[i];
+				continue;
+			}
+
+			// check driveseed path http status
+			const driveSeedSts = await getURLStatus(existInDB.driveSeedUrl[i]);
+
+			if (driveSeedSts.status === 200) {
+				const newLink = await GenerateLink.fromDriveSeed(existInDB.driveSeedUrl[i]);
+
+				finalResVal[i] = newLink;
+				continue;
+			}
+
+			// if driveseed path is not valid then fetch from postId
+			const fixedLink = await GenerateLink.fromPostId(existInDB.postId[i]);
+
+			finalResVal[i] = fixedLink;
+
+		}
+
+		await InitDB.updateTempLink(finalResVal,query);
+
+		return finalResVal;
+	}
+
+	/*
+
+	if database has not info about this movie then scrap from begin and retutn tempLink with insert current movie link info database
+
+	*/
+
+	// a new data for current movie link info to store in database
+	const newMovieLinkInfo:MovieLinkInfoDB = await GenerateLink.fromBegin({...query,resolution:3});
+
+	await useDb(async (cl) => {
+		try {
+			await cl.insertOne(newMovieLinkInfo);
+		} catch (err:any) {
+			logger.error(`Movie Link Info Can't Stored In DataBase`);
+			logError(err);
+		}
+	},true);
+
+	finalResVal = newMovieLinkInfo.tempLink;
+
+	return finalResVal;
+};

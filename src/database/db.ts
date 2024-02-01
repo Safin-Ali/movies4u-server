@@ -37,7 +37,7 @@ export class InitDB {
 
 			if(close) {
 				await this.dbInstance.close();
-				logger.process('Server Closed');
+				inDevMode(() => logger.process('Server Closed'));
 			}
 			return data;
 
@@ -64,7 +64,7 @@ export class InitDB {
 						'lastUpdate':new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50)
 					}
 				});
-			});
+			},true);
 		} catch (err:any) {
 			logError(err);
 		}
@@ -76,7 +76,7 @@ export class InitDB {
 			await useDb(async (cl) => {
 				result = await cl.findOne(query);
 
-			});
+			},true);
 			return result;
 
 		} catch (err:any) {
