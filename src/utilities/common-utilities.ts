@@ -6,7 +6,6 @@ import inDevMode from './development-mode';
 import nodeFetch from 'node-fetch';
 import crypto from 'crypto';
 
-
 export const routeHandler = <Return = void, Req = undefined>(callback: RouteHandlerType<Return, Req>): RouteHandlerType<Return, Req> => {
 	return callback;
 };

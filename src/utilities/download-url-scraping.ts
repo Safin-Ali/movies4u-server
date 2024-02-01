@@ -10,7 +10,6 @@ import inDevMode from './development-mode';
 
 export const postIdDefultVal:ResPostIdTuple = ['', '', ''];
 
-
 const empty_downloadUrl = {
 	link: '',
 	size: '0'
@@ -328,7 +327,7 @@ export class GenerateLink extends MoviePageScrape {
 			link:'',
 			size:'0'
 		};
-
+    
 		try{
 		// get dirveseed home page
 			const dshp = await nodeFetch(driveSeedURL, {
@@ -372,7 +371,6 @@ export class GenerateLink extends MoviePageScrape {
 			const matches = finalDRCPage.match(workerURLPattern);
 
 			if (matches && matches.length > 1) {
-
 				// get founded url video total size and status
 				const drcLinkStatus = await getURLStatus(matches[1]);
 
@@ -425,8 +423,8 @@ export class GenerateLink extends MoviePageScrape {
 			// select direct download server page download button 1
 			const link = $('a:contains("Download")')[0].attribs.href;
 
-							// get founded url video total size and status
-							const ddlLinkStatus = await getURLStatus(link);
+			// get founded url video total size and status
+			const ddlLinkStatus = await getURLStatus(link);
 
 			// link header status
 			const linkActiveSts = checkDLUrl(ddlLinkStatus.status);
@@ -446,8 +444,6 @@ export class GenerateLink extends MoviePageScrape {
 			};
 		}
 	};
-
-	// to get download link final object promises
 	public getUrl(): typeof this.downloadTempUrl {
 		return this.downloadTempUrl;
 	}

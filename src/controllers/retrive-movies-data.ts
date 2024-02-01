@@ -98,7 +98,6 @@ export const getMovieById = routeHandler(async (req, res) => {
 
 					InitDB.updateTempLink(newActLink, dbFilter);
 					downloadUrlArr = newActLink as FinalResponseTuple;
-
 				} else {
 					await callGL(info.postId);
 				}
@@ -108,7 +107,6 @@ export const getMovieById = routeHandler(async (req, res) => {
 			downloadUrlArr = info.tempLink;
 
 		}
-
 		const encrypt_urls = downloadUrlArr.map(url => {
 			return {
 				...url,
