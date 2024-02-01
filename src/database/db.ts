@@ -1,6 +1,6 @@
 import { useDb } from '@app';
 import { dbName, db_uri } from '@config/env-var';
-import { FinalResponseTuple, ResPostIdTuple, UseDBArg } from '@custom-types/types';
+import { FinalResponseTuple,  UseDBArg } from '@custom-types/types';
 import logger from '@utilities/color-logger';
 import { logError } from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
@@ -60,7 +60,8 @@ export class InitDB {
 			await useDb(async(cl) => {
 				await cl.updateOne(dbFilter,{
 					'$set':{
-						'tempLink':tempLinkArr
+						'tempLink':tempLinkArr,
+						'lastUpdate':new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50)
 					}
 				});
 			});

@@ -143,18 +143,4 @@ export const encryptUrl = (str:string) => {
 	encryptedData += cipher.update(str, 'utf8', 'hex');
 	encryptedData += cipher.final('hex');
 	return encryptedData;
-}
-
-/**
- *
- * return date string with like this format `01:02:24` February 1, 2024
- *
- * @param {Date} date - a date instance
- * @returns
- */
-export const getDate = (date: Date): string => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(2);
-    return `${day}:${month}:${year}`;
-}
+};
