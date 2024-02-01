@@ -18,8 +18,8 @@ export const rootRouteHandler = routeHandler((_req,res) =>{
 			inDevMode(() => {
 				logger.process('Awaked');
 			})
-			res.send('Awaked')
 		},780*1000)
+		res.send('Awaked')
 	} else {
 		res.send('Welcome MOVIES4U SERVER');
 	}
