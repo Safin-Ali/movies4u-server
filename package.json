@@ -1,11 +1,11 @@
 {
 	"name": "movies4u-server",
-	"version": "1.0.0",
+	"version": "2.1.0",
 	"description": "server-side codes for https://mov4u.com",
 	"main": "src/index.js",
 	"type": "commonjs",
 	"scripts": {
-		"start": "ts-node -r tsconfig-paths/register src/index.ts",
+		"start": "node src/index.js",
 		"build": "tsc && clear && tspr -s src",
 		"dev": "ts-node-dev --respawn --cls -r tsconfig-paths/register src/index.ts"
 	},
@@ -32,8 +32,7 @@
 		"dotenv": "^16.3.1",
 		"express": "^4.18.2",
 		"mongodb": "^6.3.0",
-		"node-fetch": "2",
-		"ts-node": "^10.9.1"
+		"node-fetch": "2"
 	},
 	"devDependencies": {
 		"@types/cors": "^2.8.15",
@@ -49,4 +48,5 @@
 	},
 	"engines": {
 		"node": ">=16"
+	}
 }
