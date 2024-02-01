@@ -37,6 +37,7 @@ export type ResolutionLiteral = '480p' | '720p' | '1080p';
  * or
  * A `Tuple` of `DownloadUrl`
  */
+
 export type ResPostIdTuple = [string, string, string];
 export interface MovieDLScrapQuery {
 	title: string,
@@ -78,5 +79,4 @@ export interface CheckDLUrlArg {
 	status:number,
 	content_type:string
 }
-
 export type CustomRouter = [string, createRouter.Router];

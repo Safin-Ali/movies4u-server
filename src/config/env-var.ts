@@ -22,6 +22,7 @@ if(env.node_env === undefined && env.port === undefined) logger.warn('==> Enviro
  * @property {string} node_env - The Node.js environment (e.g., 'development', 'production').
  */
 export const { port, node_env,movies_db_url,tmdb_api,db_uri,dbName,verifyPageUrl,awake_key,encryption_iv,encryption_key,self_domain} = {
+  
 	port: env.PORT || 5000,
 	movies_db_url: env.MOVIES_DB_URL,
 	node_env: env.NODE_ENV,
