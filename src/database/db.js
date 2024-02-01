@@ -55,7 +55,7 @@ class InitDB {
         const data = yield callB(collection);
         if (close) {
           yield this.dbInstance.close();
-          color_logger_1.default.process('Server Closed');
+          (0, development_mode_1.default)(() => color_logger_1.default.process('Server Closed'));
         }
         return data;
       } catch (err) {
@@ -63,6 +63,20 @@ class InitDB {
       }
     });
     this.dbInstance = new mongodb_1.MongoClient(env_var_1.db_uri);
+  }
+  static findMovieLink(query) {
+    return __awaiter(this, void 0, void 0, function* () {
+      let result = null;
+      try {
+        yield (0, _app_1.useDb)(cl => __awaiter(this, void 0, void 0, function* () {
+          result = yield cl.findOne(query);
+        }), true);
+        return result;
+      } catch (err) {
+        (0, common_utilities_1.logError)(err);
+        result;
+      }
+    });
   }
 }
 exports.InitDB = InitDB;
@@ -79,10 +93,11 @@ InitDB.updateTempLink = (tempLinkArr, {
     yield (0, _app_1.useDb)(cl => __awaiter(void 0, void 0, void 0, function* () {
       yield cl.updateOne(dbFilter, {
         '$set': {
-          'tempLink': tempLinkArr
+          'tempLink': tempLinkArr,
+          'lastUpdate': new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50)
         }
       });
-    }));
+    }), true);
   } catch (err) {
     (0, common_utilities_1.logError)(err);
   }

@@ -27,8 +27,8 @@ exports.rootRouteHandler = (0, common_utilities_1.routeHandler)((_req, res) => {
       (0, development_mode_1.default)(() => {
         color_logger_1.default.process('Awaked');
       });
-      res.send('Awaked');
     }, 780 * 1000);
+    res.send('Awaked');
   } else {
     res.send('Welcome MOVIES4U SERVER');
   }

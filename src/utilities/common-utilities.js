@@ -57,9 +57,9 @@ const logError = err => (0, development_mode_1.default)(() => {
   color_logger_1.default.process(err.stack || '');
 });
 exports.logError = logError;
-const checkDLUrl = status => {
-  if (status === 301 || status === 302 || status === 404 || status !== 200) return false;
-  return true;
+const checkDLUrl = arg => {
+  if (arg.status === 200 && arg.content_type === 'video/x-matroska' || arg.content_type === 'video/mp4') return true;
+  return false;
 };
 exports.checkDLUrl = checkDLUrl;
 const getURLStatus = (url, option) => __awaiter(void 0, void 0, void 0, function* () {
@@ -76,13 +76,15 @@ const getURLStatus = (url, option) => __awaiter(void 0, void 0, void 0, function
     }));
     return {
       status: response.status,
-      size: response.headers.get('Content-Length')
+      size: response.headers.get('Content-Length'),
+      content_type: response.headers.get('Content-Type')
     };
   } catch (err) {
     (0, exports.logError)(err);
     return {
       status: 401,
-      size: '0'
+      size: '0',
+      content_type: ''
     };
   }
 });
