@@ -68,4 +68,19 @@ export class InitDB {
 			logError(err);
 		}
 	};
+
+	public static async findMovieLink (query:any):Promise<any> {
+		let result:any = null;
+		try {
+			await useDb(async (cl) => {
+				result = await cl.findOne(query);
+
+			});
+			return result;
+
+		} catch (err:any) {
+			logError(err);
+			result;
+		}
+	}
 }
