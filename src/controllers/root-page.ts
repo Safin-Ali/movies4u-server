@@ -14,12 +14,12 @@ export const rootRouteHandler = routeHandler((_req,res) =>{
 					'User-Agent':userAgent,
 					'awake-key':awake_key!
 				}
-			})
+			});
 			inDevMode(() => {
 				logger.process('Awaked');
-			})
-		},780*1000)
-		res.send('Awaked')
+			});
+		},780*1000);
+		res.send('Awaked');
 	} else {
 		res.send('Welcome MOVIES4U SERVER');
 	}

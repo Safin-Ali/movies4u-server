@@ -19,10 +19,10 @@ export const getMovies = routeHandler(async (req, res) => {
 /**
  * Handler for getting movie details info by movie ID and released date.
  *
- * @example `?q=787781&y=2023-09-09`
+ * @example `movie/550988`
  * @function
  * @async
- * @returns {Promise<void>} - Resolves when the response is sent.
+ * @returns {Promise<any>} - Resolves when the response is sent.
  * @throws {Error} - Throws an error if there is an issue with fetching data or processing the request.
  */
 export const getMovieById = routeHandler(async (req, res) => {
@@ -31,12 +31,34 @@ export const getMovieById = routeHandler(async (req, res) => {
 		// Fetches details of a movie from TMDB.
 		const details = await fetchTMDB(req.query.q as string);
 
-		const title = details.original_title.toLowerCase();
+		res.status(200).send(details);
+	} catch (err: any) {
+		logError(err);
+		sendServerError(res);
+	}
 
-		// Extracts the year from the provided movie release date.
-		const year = (req.query.y as string).split('-')[0];
+});
 
-		const downloadUrlTuple = await movieLinkTuple({title,year});
+
+/**
+ * handle for making url for streaming
+ * @example `?q=787781&y=2023-09-09`
+ * @function
+ * @async
+ * @returns {Promise<FinalResponseTuple>} - Resolves when the response is sent.
+ */
+
+export const getTempLink = routeHandler(async (req,res) => {
+	try {
+
+		const title = (req.query.title as string).toLowerCase();
+
+		const year = (req.query.year as string).split('-')[0];
+
+		const downloadUrlTuple = await movieLinkTuple({
+			title,
+			year
+		});
 
 		const encrypt_urls = downloadUrlTuple.map(url => {
 			return {
@@ -45,15 +67,11 @@ export const getMovieById = routeHandler(async (req, res) => {
 			};
 		});
 
-		// Sends a successful response with movie details and download URL.
-
-		res.status(200).send({
-			movieDetails: details,
-			downloadUrl: encrypt_urls
+		res.send({
+			temporary_links:encrypt_urls
 		});
-	} catch (err: any) {
+	} catch (err:any) {
 		logError(err);
 		sendServerError(res);
 	}
-
 });
