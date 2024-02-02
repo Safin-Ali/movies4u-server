@@ -1,6 +1,6 @@
 {
 	"name": "movies4u-server",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"description": "server-side codes for https://movies4u.com",
 	"main": "src/index.js",
 	"type": "commonjs",

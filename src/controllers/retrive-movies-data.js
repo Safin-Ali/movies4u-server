@@ -30,7 +30,7 @@ var __awaiter = this && this.__awaiter || function (thisArg, _arguments, P, gene
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getMovieById = exports.getMovies = void 0;
+exports.getTempLink = exports.getMovieById = exports.getMovies = void 0;
 const common_utilities_1 = require("../utilities/common-utilities");
 const download_url_scraping_1 = require("../utilities/download-url-scraping");
 exports.getMovies = (0, common_utilities_1.routeHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -45,8 +45,16 @@ exports.getMovies = (0, common_utilities_1.routeHandler)((req, res) => __awaiter
 exports.getMovieById = (0, common_utilities_1.routeHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
   try {
     const details = yield (0, common_utilities_1.fetchTMDB)(req.query.q);
-    const title = details.original_title.toLowerCase();
-    const year = req.query.y.split('-')[0];
+    res.status(200).send(details);
+  } catch (err) {
+    (0, common_utilities_1.logError)(err);
+    (0, common_utilities_1.sendServerError)(res);
+  }
+}));
+exports.getTempLink = (0, common_utilities_1.routeHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+  try {
+    const title = req.query.title.toLowerCase();
+    const year = req.query.year.split('-')[0];
     const downloadUrlTuple = yield (0, download_url_scraping_1.movieLinkTuple)({
       title,
       year
@@ -56,9 +64,8 @@ exports.getMovieById = (0, common_utilities_1.routeHandler)((req, res) => __awai
         link: !url.link ? url.link : (0, common_utilities_1.encryptUrl)(url.link)
       });
     });
-    res.status(200).send({
-      movieDetails: details,
-      downloadUrl: encrypt_urls
+    res.send({
+      temporary_links: encrypt_urls
     });
   } catch (err) {
     (0, common_utilities_1.logError)(err);
