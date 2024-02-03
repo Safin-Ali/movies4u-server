@@ -477,10 +477,10 @@ export const movieLinkTuple = async (query: MovieDLScrapQuery):Promise<FinalResp
 
 	*/
 
-	if (existInDB && existInDB.lastUpdate > Date.now()) {
-		finalResVal = existInDB.tempLink;
-		return finalResVal;
-	}
+	// if (existInDB && existInDB.lastUpdate > Date.now()) {
+	// 	finalResVal = existInDB.tempLink;
+	// 	return finalResVal;
+	// }
 
 	/*
 
@@ -488,7 +488,7 @@ export const movieLinkTuple = async (query: MovieDLScrapQuery):Promise<FinalResp
 
 	*/
 
-	if (existInDB && existInDB.lastUpdate <= Date.now()) {
+	if (existInDB) {
 
 		/*
 		1. iterate and check link is valid or not
