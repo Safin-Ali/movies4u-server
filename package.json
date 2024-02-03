@@ -1,7 +1,7 @@
 {
 	"name": "movies4u-server",
-	"version": "1.0.0",
-	"description": "server-side codes for https://mov4u.com",
+	"version": "3.0.0",
+	"description": "server-side codes for https://movies4u.com",
 	"main": "src/index.js",
 	"type": "commonjs",
 	"scripts": {
@@ -38,6 +38,7 @@
 	"devDependencies": {
 		"@types/cors": "^2.8.15",
 		"@types/express": "^4.17.20",
+		"@types/node": "^20.11.16",
 		"@types/node-fetch": "^2.6.9",
 		"@typescript-eslint/eslint-plugin": "^6.9.1",
 		"@typescript-eslint/parser": "^6.9.1",
@@ -46,7 +47,5 @@
 		"tsconfig-paths": "^4.2.0",
 		"tsconfig-paths-resolver": "^1.0.1",
 		"typescript": "^5.2.2"
-	},
-	"engines": {
-		"node": ">=16"
+	}
 }

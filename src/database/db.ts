@@ -1,6 +1,6 @@
 import { useDb } from '@app';
 import { dbName, db_uri } from '@config/env-var';
-import { ResPostIdTuple, UseDBArg } from '@custom-types/types';
+import { FinalResponseTuple,  UseDBArg } from '@custom-types/types';
 import logger from '@utilities/color-logger';
 import { logError } from '@utilities/common-utilities';
 import inDevMode from '@utilities/development-mode';
@@ -37,7 +37,7 @@ export class InitDB {
 
 			if(close) {
 				await this.dbInstance.close();
-				logger.process('Server Closed');
+				inDevMode(() => logger.process('Server Closed'));
 			}
 			return data;
 
@@ -50,7 +50,7 @@ export class InitDB {
 	 * update tempLink in db
 	 */
 
-	static updateTempLink = async (tempLinkArr:ResPostIdTuple,{title,year}:{title:string,year:string}):Promise<void> => {
+	static updateTempLink = async (tempLinkArr:FinalResponseTuple,{title,year}:{title:string,year:string}):Promise<void> => {
 		try {
 		// query filter for mongodb
 			const dbFilter = {
@@ -60,12 +60,28 @@ export class InitDB {
 			await useDb(async(cl) => {
 				await cl.updateOne(dbFilter,{
 					'$set':{
-						'tempLink':tempLinkArr
+						'tempLink':tempLinkArr,
+						'lastUpdate':new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50)
 					}
 				});
-			});
+			},true);
 		} catch (err:any) {
 			logError(err);
 		}
 	};
+
+	public static async findMovieLink (query:any):Promise<any> {
+		let result:any = null;
+		try {
+			await useDb(async (cl) => {
+				result = await cl.findOne(query);
+
+			},true);
+			return result;
+
+		} catch (err:any) {
+			logError(err);
+			result;
+		}
+	}
 }
