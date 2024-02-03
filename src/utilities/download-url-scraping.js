@@ -331,11 +331,7 @@ const movieLinkTuple = query => __awaiter(void 0, void 0, void 0, function* () {
     title,
     year
   });
-  if (existInDB && existInDB.lastUpdate > Date.now()) {
-    finalResVal = existInDB.tempLink;
-    return finalResVal;
-  }
-  if (existInDB && existInDB.lastUpdate <= Date.now()) {
+  if (existInDB) {
     for (let i = 0; i < existInDB.tempLink.length; i++) {
       const {
         content_type,
