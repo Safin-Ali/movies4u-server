@@ -35,7 +35,7 @@ var __importDefault = this && this.__importDefault || function (mod) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.encryptUrl = exports.fetchHtml = exports.extractDriveSeedKey = exports.fetchTMDB = exports.getURLStatus = exports.checkDLUrl = exports.logError = exports.sendServerError = exports.userAgent = exports.routeHandler = void 0;
+exports.randomUserAgent = exports.extractDriveSeedPath = exports.encryptUrl = exports.fetchHtml = exports.extractDriveSeedKey = exports.fetchTMDB = exports.getURLStatus = exports.checkDLUrl = exports.logError = exports.sendServerError = exports.userAgent = exports.routeHandler = void 0;
 const env_var_1 = require("../config/env-var");
 const color_logger_1 = __importDefault(require("./color-logger"));
 const development_mode_1 = __importDefault(require("./development-mode"));
@@ -139,3 +139,39 @@ const encryptUrl = str => {
   return encryptedData;
 };
 exports.encryptUrl = encryptUrl;
+const extractDriveSeedPath = (domain, str) => {
+  const match = str.match(/window\.location\.replace\("([^"]+)"\)/);
+  if (match) {
+    const path = match[1];
+    return `${domain}${path}`;
+  } else {
+    return '';
+  }
+};
+exports.extractDriveSeedPath = extractDriveSeedPath;
+const randomUserAgent = () => {
+  const components = {
+    os: ['Windows NT 10.0', 'Macintosh; Intel Mac OS X 10_15_7', 'Linux x86_64'],
+    browsers: [{
+      name: 'Chrome',
+      version: '97.0.'
+    }, {
+      name: 'Firefox',
+      version: '96.0.'
+    }, {
+      name: 'Safari',
+      version: '15.2'
+    }, {
+      name: 'Edge',
+      version: '97.0.'
+    }, {
+      name: 'Opera',
+      version: '83.0.'
+    }]
+  };
+  const os = components.os[Math.floor(Math.random() * components.os.length)];
+  const browser = components.browsers[Math.floor(Math.random() * components.browsers.length)];
+  const newAgent = `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) ${browser.name}/${browser.version}${Math.floor(Math.random() * (100 - 999 + 1)) + 999}.99 Safari/537.36`;
+  exports.userAgent = newAgent;
+};
+exports.randomUserAgent = randomUserAgent;

@@ -9,7 +9,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.middle_web = exports.self_domain = exports.encryption_key = exports.encryption_iv = exports.awake_key = exports.verifyPageUrl = exports.dbName = exports.db_uri = exports.tmdb_api = exports.movies_db_url = exports.node_env = exports.port = void 0;
+exports.self_domain = exports.encryption_key = exports.encryption_iv = exports.awake_key = exports.verifyPageUrl = exports.dbName = exports.db_uri = exports.tmdb_api = exports.movies_db_url = exports.node_env = exports.port = void 0;
 const color_logger_1 = __importDefault(require("../utilities/color-logger"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -26,6 +26,5 @@ _a = {
   encryption_key: env.ENCRYPTION_KEY,
   encryption_iv: env.ENCRYPTION_IV,
   awake_key: env.AWAKE_KEY,
-  self_domain: env.SELF_DOMAIN,
-  middle_web: env.MIDDLE_WEB
-}, exports.port = _a.port, exports.node_env = _a.node_env, exports.movies_db_url = _a.movies_db_url, exports.tmdb_api = _a.tmdb_api, exports.db_uri = _a.db_uri, exports.dbName = _a.dbName, exports.verifyPageUrl = _a.verifyPageUrl, exports.awake_key = _a.awake_key, exports.encryption_iv = _a.encryption_iv, exports.encryption_key = _a.encryption_key, exports.self_domain = _a.self_domain, exports.middle_web = _a.middle_web;
+  self_domain: env.SELF_DOMAIN
+}, exports.port = _a.port, exports.node_env = _a.node_env, exports.movies_db_url = _a.movies_db_url, exports.tmdb_api = _a.tmdb_api, exports.db_uri = _a.db_uri, exports.dbName = _a.dbName, exports.verifyPageUrl = _a.verifyPageUrl, exports.awake_key = _a.awake_key, exports.encryption_iv = _a.encryption_iv, exports.encryption_key = _a.encryption_key, exports.self_domain = _a.self_domain;

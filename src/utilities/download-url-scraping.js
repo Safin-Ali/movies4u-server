@@ -50,6 +50,17 @@ const empty_downloadUrl = {
   size: '0'
 };
 exports.empty_downloadUrlTuple = [empty_downloadUrl, empty_downloadUrl, empty_downloadUrl];
+const getDriveSeedPath = driveSeedUrl => __awaiter(void 0, void 0, void 0, function* () {
+  try {
+    const redirect_str = yield (0, common_utilities_1.fetchHtml)(driveSeedUrl);
+    const {
+      origin
+    } = new URL(driveSeedUrl);
+    return (0, common_utilities_1.extractDriveSeedPath)(origin, redirect_str);
+  } catch (err) {
+    return '';
+  }
+});
 class MoviePostId {
   static getPostId(query) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -150,7 +161,7 @@ class VerifyMiddleWeb {
           domain: new URL($('meta')[1].attribs.content.replace('0;url=', '')).origin
         };
         const verifiedDriveSeed = yield (0, common_utilities_1.fetchHtml)(odmRedUrl.redUrl);
-        driveSeedPath = `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
+        driveSeedPath = (0, common_utilities_1.extractDriveSeedPath)(odmRedUrl.domain, verifiedDriveSeed);
         return driveSeedPath;
       } catch (err) {
         (0, common_utilities_1.logError)(err);
@@ -220,13 +231,13 @@ class RetriveDirectLink {
               size: size
             };
           } else {
-            (0, development_mode_1.default)(() => color_logger_1.default.error('crash on DRC fetching '));
+            (0, development_mode_1.default)(() => color_logger_1.default.error('DRC link is not active'));
             return downloadCdn;
           }
         }
         return downloadCdn;
       } catch (_b) {
-        (0, development_mode_1.default)(() => color_logger_1.default.error('DRC link is something wrong'));
+        (0, development_mode_1.default)(() => color_logger_1.default.error('crash on DRC while fetching '));
         return downloadCdn;
       }
     });
@@ -263,7 +274,7 @@ class RetriveDirectLink {
         return downloadCdn;
       } catch (err) {
         (0, common_utilities_1.logError)(err);
-        (0, development_mode_1.default)(() => color_logger_1.default.error('crash on DDL fetching '));
+        (0, development_mode_1.default)(() => color_logger_1.default.error('crash on DDL while fetching '));
         return downloadCdn;
       }
     });
@@ -280,28 +291,35 @@ class GenerateLink {
         tempLink: [...exports.empty_downloadUrlTuple],
         lastUpdate: new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50)
       };
-      for (let i = 1; i <= query.resolution; i++) {
-        const postId = yield MoviePostId.getPostId({
-          title: query.title,
-          year: query.year,
-          resolutionIndex: i - 1
-        });
-        movieLinkInfo.postId[i - 1] = postId;
-        const fastS = yield FileHostedServers.getServerUrl(postId);
-        const driveSeed = env_var_1.middle_web === 'yes' ? yield VerifyMiddleWeb.verifyPage(fastS) : fastS;
-        movieLinkInfo.driveSeedUrl[i - 1] = driveSeed;
-        const finalLink = yield new RetriveDirectLink().findUrl(driveSeed);
-        movieLinkInfo.tempLink[i - 1] = finalLink;
+      try {
+        for (let i = 1; i <= query.resolution; i++) {
+          const postId = yield MoviePostId.getPostId({
+            title: query.title,
+            year: query.year,
+            resolutionIndex: i - 1
+          });
+          movieLinkInfo.postId[i - 1] = postId;
+          const fastS = yield FileHostedServers.getServerUrl(postId);
+          const driveSeed = yield getDriveSeedPath(fastS);
+          movieLinkInfo.driveSeedUrl[i - 1] = driveSeed;
+          const finalLink = yield new RetriveDirectLink().findUrl(driveSeed);
+          movieLinkInfo.tempLink[i - 1] = finalLink;
+        }
+        (0, common_utilities_1.randomUserAgent)();
+        return movieLinkInfo;
+      } catch (err) {
+        (0, common_utilities_1.logError)(err);
+        return movieLinkInfo;
       }
-      return movieLinkInfo;
     });
   }
   static fromPostId(postId) {
     return __awaiter(this, void 0, void 0, function* () {
       try {
         const fastS = yield FileHostedServers.getServerUrl(postId);
-        const driveSeed = env_var_1.middle_web === 'yes' ? yield VerifyMiddleWeb.verifyPage(fastS) : fastS;
+        const driveSeed = yield getDriveSeedPath(fastS);
         const finalLink = yield new RetriveDirectLink().findUrl(driveSeed);
+        (0, common_utilities_1.randomUserAgent)();
         return finalLink;
       } catch (err) {
         (0, common_utilities_1.logError)(err);
@@ -313,6 +331,7 @@ class GenerateLink {
     return __awaiter(this, void 0, void 0, function* () {
       try {
         const directLink = yield new RetriveDirectLink().findUrl(driveSeedPath);
+        (0, common_utilities_1.randomUserAgent)();
         return directLink;
       } catch (err) {
         (0, common_utilities_1.logError)(err);
