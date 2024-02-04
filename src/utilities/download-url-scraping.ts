@@ -1,6 +1,6 @@
 import { DirectLinkResponse, DriveSeedDRCRes, MoviePostIdArg, GenerateLinkArg, FinalResponseTuple, MovieDLScrapQuery, MovieLinkInfoDB } from '@custom-types/types';
-import { checkDLUrl, extractDriveSeedKey, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
-import { middle_web, movies_db_url, verifyPageUrl } from '@config/env-var';
+import { checkDLUrl, extractDriveSeedKey, extractDriveSeedPath, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
+import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { load } from 'cheerio';
 import nodeFetch from 'node-fetch';
 import logger from './color-logger';
@@ -16,6 +16,16 @@ const empty_downloadUrl = {
 };
 
 export const empty_downloadUrlTuple: FinalResponseTuple = [empty_downloadUrl, empty_downloadUrl, empty_downloadUrl];
+
+const getDriveSeedPath = async (driveSeedUrl:string) => {
+	try {
+		const redirect_str = await fetchHtml(driveSeedUrl);
+		const {origin} = new URL(driveSeedUrl);
+		return extractDriveSeedPath(origin,redirect_str);
+	} catch (err) {
+		return '';
+	}
+};
 
 class MoviePostId {
 	public static async getPostId(query: MoviePostIdArg): Promise<string> {
@@ -206,7 +216,7 @@ class VerifyMiddleWeb {
 			const verifiedDriveSeed = await fetchHtml(odmRedUrl.redUrl);
 
 			// finally extract driveseed path where the video is stored with super fast link
-			driveSeedPath = `${odmRedUrl.domain}${verifiedDriveSeed.match(/window\.location\.replace\("([^"]+)"\)/)[1]}`;
+			driveSeedPath = extractDriveSeedPath(odmRedUrl.domain,verifiedDriveSeed);
 			return driveSeedPath;
 
 		} catch (err: any) {
@@ -301,14 +311,13 @@ class RetriveDirectLink {
 						size: size
 					};
 				} else {
-					inDevMode(() => logger.error('crash on DRC fetching '));
+					inDevMode(() => logger.error('DRC link is not active'));
 					return downloadCdn;
 				}
 			}
 			return downloadCdn;
 		} catch {
-			// here will be anothers site scrap class
-			inDevMode(() => logger.error('DRC link is something wrong'));
+			inDevMode(() => logger.error('crash on DRC while fetching '));
 			return downloadCdn;
 		}
 	}
@@ -367,7 +376,7 @@ class RetriveDirectLink {
 
 		} catch (err: any) {
 			logError(err);
-			inDevMode(() => logger.error('crash on DDL fetching '));
+			inDevMode(() => logger.error('crash on DDL while fetching '));
 			return downloadCdn;
 		}
 	}
@@ -397,7 +406,13 @@ class GenerateLink {
 
 			const fastS = await FileHostedServers.getServerUrl(postId);
 
-			const driveSeed = middle_web === 'yes' ? await VerifyMiddleWeb.verifyPage(fastS) : fastS;
+			/**
+			 * middle web verification temporary turned off
+			 */
+
+			// const driveSeed =  await VerifyMiddleWeb.verifyPage(fastS);
+
+			const driveSeed = await getDriveSeedPath(fastS);
 
 			// store driveSeedPath based on index in movieLinkInfo
 			movieLinkInfo.driveSeedUrl[i-1] = driveSeed;
@@ -420,7 +435,13 @@ class GenerateLink {
 		try {
 			const fastS = await FileHostedServers.getServerUrl(postId);
 
-			const driveSeed = middle_web === 'yes' ? await VerifyMiddleWeb.verifyPage(fastS) : fastS;
+			/**
+			 * middle web verification temporary turned off
+			 */
+
+			// const driveSeed =  await VerifyMiddleWeb.verifyPage(fastS);
+
+			const driveSeed = await getDriveSeedPath(fastS);
 
 			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
 

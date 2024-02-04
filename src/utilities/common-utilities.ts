@@ -144,3 +144,20 @@ export const encryptUrl = (str:string) => {
 	encryptedData += cipher.final('hex');
 	return encryptedData;
 };
+
+/**
+ * Extracts the path from a string representing a window.location.replace() call
+ * and constructs a URL using the provided domain.
+ * @param {string} domain The domain to prepend to the extracted path.
+ * @param {string} str The string containing the window.location.replace() call.
+ * @returns {string | null} The constructed URL, or null if no match is found.
+ */
+export const extractDriveSeedPath = (domain: string, str: string): string => {
+	const match = str.match(/window\.location\.replace\("([^"]+)"\)/);
+	if (match) {
+		const path = match[1];
+		return `${domain}${path}`;
+	} else {
+		return '';
+	}
+};
