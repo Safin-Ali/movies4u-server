@@ -1,6 +1,6 @@
 import { DirectLinkResponse, DriveSeedDRCRes, MoviePostIdArg, GenerateLinkArg, FinalResponseTuple, MovieDLScrapQuery, MovieLinkInfoDB } from '@custom-types/types';
 import { checkDLUrl, extractDriveSeedKey, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
-import { movies_db_url, verifyPageUrl } from '@config/env-var';
+import { middle_web, movies_db_url, verifyPageUrl } from '@config/env-var';
 import { load } from 'cheerio';
 import nodeFetch from 'node-fetch';
 import logger from './color-logger';
@@ -397,7 +397,7 @@ class GenerateLink {
 
 			const fastS = await FileHostedServers.getServerUrl(postId);
 
-			const driveSeed = await VerifyMiddleWeb.verifyPage(fastS);
+			const driveSeed = middle_web === 'yes' ? await VerifyMiddleWeb.verifyPage(fastS) : fastS;
 
 			// store driveSeedPath based on index in movieLinkInfo
 			movieLinkInfo.driveSeedUrl[i-1] = driveSeed;
