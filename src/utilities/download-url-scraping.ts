@@ -1,5 +1,5 @@
 import { DirectLinkResponse, DriveSeedDRCRes, MoviePostIdArg, GenerateLinkArg, FinalResponseTuple, MovieDLScrapQuery, MovieLinkInfoDB } from '@custom-types/types';
-import { checkDLUrl, extractDriveSeedKey, extractDriveSeedPath, fetchHtml, getURLStatus, logError, userAgent } from './common-utilities';
+import { checkDLUrl, extractDriveSeedKey, extractDriveSeedPath, fetchHtml, getURLStatus, logError, randomUserAgent, userAgent } from './common-utilities';
 import { movies_db_url, verifyPageUrl } from '@config/env-var';
 import { load } from 'cheerio';
 import nodeFetch from 'node-fetch';
@@ -393,42 +393,49 @@ class GenerateLink {
 			tempLink:[...empty_downloadUrlTuple],
 			lastUpdate:new Date().setHours(new Date().getHours() + 23, new Date().getMinutes() + 50),
 		};
+		try {
 
-		for (let i = 1; i <= query.resolution; i++) {
-			const postId = await MoviePostId.getPostId({
-				title: query.title,
-				year: query.year,
-				resolutionIndex: i - 1
-			});
+			for (let i = 1; i <= query.resolution; i++) {
+				const postId = await MoviePostId.getPostId({
+					title: query.title,
+					year: query.year,
+					resolutionIndex: i - 1
+				});
 
-			// store postId based on index in movieLinkInfo
-			movieLinkInfo.postId[i-1] = postId;
+				// store postId based on index in movieLinkInfo
+				movieLinkInfo.postId[i-1] = postId;
 
-			const fastS = await FileHostedServers.getServerUrl(postId);
+				const fastS = await FileHostedServers.getServerUrl(postId);
+
+				/**
+				 * middle web verification temporary turned off
+				 */
+
+				// const driveSeed =  await VerifyMiddleWeb.verifyPage(fastS);
+
+				const driveSeed = await getDriveSeedPath(fastS);
+
+				// store driveSeedPath based on index in movieLinkInfo
+				movieLinkInfo.driveSeedUrl[i-1] = driveSeed;
+
+				const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
+
+				movieLinkInfo.tempLink[i - 1] = finalLink;
+			}
 
 			/**
-			 * middle web verification temporary turned off
+			 * fallback
+			 * when each response is empty then from here
+			 * you can scrap another site
 			 */
 
-			// const driveSeed =  await VerifyMiddleWeb.verifyPage(fastS);
+			randomUserAgent();
 
-			const driveSeed = await getDriveSeedPath(fastS);
-
-			// store driveSeedPath based on index in movieLinkInfo
-			movieLinkInfo.driveSeedUrl[i-1] = driveSeed;
-
-			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
-
-			movieLinkInfo.tempLink[i - 1] = finalLink;
+			return movieLinkInfo;
+		} catch (err:any) {
+			logError(err);
+			return movieLinkInfo;
 		}
-
-		/**
-		 * fallback
-		 * when each response is empty then from here
-		 * you can scrap another site
-		 */
-
-		return movieLinkInfo;
 	}
 
 	public static async fromPostId(postId: string) {
@@ -444,7 +451,7 @@ class GenerateLink {
 			const driveSeed = await getDriveSeedPath(fastS);
 
 			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
-
+			randomUserAgent();
 			return finalLink;
 		} catch (err:any) {
 			logError(err);
@@ -455,6 +462,7 @@ class GenerateLink {
 	public static async fromDriveSeed(driveSeedPath: string) {
 		try {
 			const directLink: DirectLinkResponse = await new RetriveDirectLink().findUrl(driveSeedPath);
+			randomUserAgent();
 			return directLink;
 		} catch (err: any) {
 			logError(err);

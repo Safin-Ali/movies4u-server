@@ -1,4 +1,4 @@
-import {  encryptUrl, fetchTMDB, logError, routeHandler, sendServerError } from '@utilities/common-utilities';
+import {  encryptUrl, fetchTMDB, logError, randomUserAgent, routeHandler, sendServerError } from '@utilities/common-utilities';
 import { movieLinkTuple } from '@utilities/download-url-scraping';
 
 /**
@@ -50,7 +50,6 @@ export const getMovieById = routeHandler(async (req, res) => {
 
 export const getTempLink = routeHandler(async (req,res) => {
 	try {
-
 		const title = (req.query.title as string).toLowerCase();
 
 		const year = (req.query.year as string).split('-')[0];

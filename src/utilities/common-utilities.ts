@@ -12,7 +12,7 @@ export const routeHandler = <Return = void, Req = undefined>(callback: RouteHand
 };
 
 // common user agent
-export const userAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+export let userAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 /**
  * Sends a server-side error message to the client with the specified HTTP status code.
  * @param {Response} res - The HTTP response object.
@@ -160,4 +160,27 @@ export const extractDriveSeedPath = (domain: string, str: string): string => {
 	} else {
 		return '';
 	}
+};
+
+
+/**
+ * Generate a random User-Agent string.
+ * @returns {string} Random User-Agent string.
+ */
+export const randomUserAgent = (): void => {
+	// Array of common components for generating random user agents
+	const components = {
+		os: ['Windows NT 10.0', 'Macintosh; Intel Mac OS X 10_15_7', 'Linux x86_64'],
+		browsers: [
+			{ name: 'Chrome', version: '97.0.' },
+			{ name: 'Firefox', version: '96.0.' },
+			{ name: 'Safari', version: '15.2' },
+			{ name: 'Edge', version: '97.0.' },
+			{ name: 'Opera', version: '83.0.' }
+		]
+	};
+	const os = components.os[Math.floor(Math.random() * components.os.length)];
+	const browser = components.browsers[Math.floor(Math.random() * components.browsers.length)];
+	const newAgent = `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) ${browser.name}/${browser.version}${Math.floor(Math.random() * (100 - 999 + 1)) + 999}.99 Safari/537.36`;
+	userAgent = newAgent;
 };
