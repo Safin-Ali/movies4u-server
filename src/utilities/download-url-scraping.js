@@ -288,7 +288,7 @@ class GenerateLink {
         });
         movieLinkInfo.postId[i - 1] = postId;
         const fastS = yield FileHostedServers.getServerUrl(postId);
-        const driveSeed = yield VerifyMiddleWeb.verifyPage(fastS);
+        const driveSeed = env_var_1.middle_web === 'yes' ? yield VerifyMiddleWeb.verifyPage(fastS) : fastS;
         movieLinkInfo.driveSeedUrl[i - 1] = driveSeed;
         const finalLink = yield new RetriveDirectLink().findUrl(driveSeed);
         movieLinkInfo.tempLink[i - 1] = finalLink;
@@ -300,7 +300,7 @@ class GenerateLink {
     return __awaiter(this, void 0, void 0, function* () {
       try {
         const fastS = yield FileHostedServers.getServerUrl(postId);
-        const driveSeed = yield VerifyMiddleWeb.verifyPage(fastS);
+        const driveSeed = env_var_1.middle_web === 'yes' ? yield VerifyMiddleWeb.verifyPage(fastS) : fastS;
         const finalLink = yield new RetriveDirectLink().findUrl(driveSeed);
         return finalLink;
       } catch (err) {
