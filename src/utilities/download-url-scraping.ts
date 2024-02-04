@@ -420,7 +420,7 @@ class GenerateLink {
 		try {
 			const fastS = await FileHostedServers.getServerUrl(postId);
 
-			const driveSeed = await VerifyMiddleWeb.verifyPage(fastS);
+			const driveSeed = middle_web === 'yes' ? await VerifyMiddleWeb.verifyPage(fastS) : fastS;
 
 			const finalLink = await new RetriveDirectLink().findUrl(driveSeed);
 
